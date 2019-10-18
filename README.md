@@ -30,6 +30,6 @@ Run on the command line from the root of your project:
 $ php artisan vendor:publish
 ```
 
-Set your laravel-db2 credentials in ``app/config/db2.php``
+Set your laravel-odbc-hive credentials in ``app/config/hive.php``
 the same way as above
 
