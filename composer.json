@@ -1,0 +1,36 @@
+{
+    "name": "sukhilss/laravel-odbc-hive",
+    "description": "laravel-odbc-hive is a simple hive service provider for Laravel. It provides hive Connection by extending the Illuminate Database component of the laravel framework.",
+    "keywords": [
+        "Laravel",
+        "Hive",
+        "Database",
+        "PDO",
+        "ODBC"
+    ],
+    "license": "MIT",
+    "authors": [
+    {
+        "name": "Sukhil S S",
+        "role": "Developer"
+    }
+    ],
+    "require": {
+        "php": "^7.2",
+        "illuminate/database": "^6.0"
+    },
+    "require-dev": {
+    },
+    "autoload": {
+    "psr-4": {
+        "Cooperl\\Database\\DB2\\": "src/"
+    }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Sukhil\\Database\\Hive\\HiveServiceProvider"
+            ]
+        }
+    }
+}
