@@ -23,7 +23,7 @@
     },
     "autoload": {
     "psr-4": {
-        "Cooperl\\Database\\DB2\\": "src/"
+        "Sukhil\\Database\\Hive\\": "src/"
     }
     },
     "extra": {
