@@ -7,8 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 
 /**
  * Class Builder
- *
- * @package Cooperl\Database\DB2\Schema
+ * @package Sukhil\Database\Hive\Schema
  */
 class Builder extends \Illuminate\Database\Schema\Builder
 {
@@ -84,6 +83,6 @@ class Builder extends \Illuminate\Database\Schema\Builder
             return call_user_func($this->resolver, $table, $callback);
         }
 
-        return new \Cooperl\Database\DB2\Schema\Blueprint($table, $callback);
+        return new HiveBlueprint($table, $callback);
     }
 }

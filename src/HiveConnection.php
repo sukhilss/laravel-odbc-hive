@@ -4,6 +4,7 @@ namespace Sukhil\Database\Hive;
 
 use Illuminate\Database\Connection;
 use PDO;
+use Sukhil\Database\Hive\Query\Grammars\HiveGrammar;
 use Sukhil\Database\Hive\Query\Grammars\HiveGrammar as QueryGrammar;
 use Sukhil\Database\Hive\Query\Processors\HiveProcessor;
 use Sukhil\Database\Hive\Schema\Builder;
@@ -39,7 +40,7 @@ class HiveConnection extends Connection
     public function __construct(PDO $pdo, $database = '', $tablePrefix = '', array $config = [])
     {
         parent::__construct($pdo, $database, $tablePrefix, $config);
-        $this->currentSchema = $this->defaultSchema = config['schema'] ?? null;
+        $this->currentSchema = $this->defaultSchema = $config['schema'] ?? null;
     }
 
     /**
@@ -122,4 +123,27 @@ class HiveConnection extends Connection
     {
         return new HiveProcessor;
     }
+
+    /**
+     * Execute an SQL statement and return the boolean result.
+     *
+     * @param  string  $query
+     * @param  array   $bindings
+     * @return bool
+     */
+    public function statement($query, $bindings = [])
+    {
+        return $this->run($query, $bindings, function ($query, $bindings) {
+            if ($this->pretending()) {
+                return true;
+            }
+
+            $statement = $this->getPdo()->prepare($query);
+            $this->bindValues($statement, $this->prepareBindings($bindings));
+            $this->recordsHaveBeenModified();
+
+            return $statement->execute();
+        });
+    }
+
 }

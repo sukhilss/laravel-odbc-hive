@@ -37,7 +37,7 @@ class HiveServiceProvider extends ServiceProvider
     public function register()
     {
         // get the configs
-        $conns = is_array(config('db2.connections')) ? config('db2.connections') : [];
+        $conns = is_array(config('hive.connections')) ? config('hive.connections') : [];
 
         // Add my database configurations to the default set of configurations
         config(['database.connections' => array_merge($conns, config('database.connections'))]);

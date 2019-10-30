@@ -23,13 +23,6 @@ class HiveConnector extends Connector implements ConnectorInterface
         $options = $this->getOptions($config);
         $connection = $this->createConnection($dsn, $config, $options);
 
-        if (isset($config['schema'])) {
-            $schema = $config['schema'];
-
-            $connection->prepare('set schema ' . $schema)
-                       ->execute();
-        }
-
         return $connection;
     }
 }
