@@ -19,26 +19,14 @@ class HiveGrammar extends Grammar
      *
      * @var array
      */
-    protected $preModifiers = ['ForColumn'];
-    protected $modifiers = [
-        'Nullable',
-        'Default',
-        'Generated',
-        'Increment',
-        'StartWith',
-        'Before',
-        'ImplicitlyHidden',
-    ];
+    protected $preModifiers = [];
+
     /**
      * The possible column serials
      *
      * @var array
      */
-    protected $serials = [
-        'smallInteger',
-        'integer',
-        'bigInteger',
-    ];
+    protected $serials = [];
 
     /**
      * Wrap a single string in keyword identifiers.
@@ -71,6 +59,11 @@ class HiveGrammar extends Grammar
         $sql = 'create table ' . $this->wrapTable($blueprint);
 
         $sql .= " ($columns)";
+
+        if (!empty($blueprint->charset)) {
+            $sql .= "ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe' WITH SERDEPROPERTIES " .
+                "('serialization.encoding'='{$blueprint->charset}','store.charset'='{$blueprint->charset}', 'retrieve.charset'='{$blueprint->charset}')";
+        }
 
         if (!empty($blueprint->format) && $blueprint->format == 'ORC') {
             $sql .= " STORED AS ORC";

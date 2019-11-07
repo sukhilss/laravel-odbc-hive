@@ -2,8 +2,9 @@
 
 namespace Sukhil\Database\Hive\Query\Grammars;
 
-use Illuminate\Database\Query\Grammars\Grammar;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\Grammars\Grammar;
+use Illuminate\Support\Arr;
 
 /**
  * Class HiveGrammar
@@ -12,16 +13,9 @@ use Illuminate\Database\Query\Builder;
 class HiveGrammar extends Grammar
 {
     /**
-     * The format for database stored dates.
-     *
-     * @var string
-     */
-    protected $dateFormat;
-
-    /**
      * Wrap a table in keyword identifiers.
      *
-     * @param  \Illuminate\Database\Query\Expression|string  $table
+     * @param \Illuminate\Database\Query\Expression|string $table
      * @return string
      */
     public function wrapTable($table)
@@ -32,8 +26,8 @@ class HiveGrammar extends Grammar
     /**
      * Compile an insert statement into SQL.
      *
-     * @param  \Illuminate\Database\Query\Builder  $query
-     * @param  array  $values
+     * @param \Illuminate\Database\Query\Builder $query
+     * @param array $values
      * @return string
      */
     public function compileInsert(Builder $query, array $values)
@@ -47,40 +41,44 @@ class HiveGrammar extends Grammar
             return "insert into {$table} default values";
         }
 
-        if (! is_array(reset($values))) {
+        if (!is_array(reset($values))) {
             $values = [$values];
         }
 
         $columns = $this->columnize(array_keys(reset($values)));
+        $data = $this->parseInsertValuesToSQL($values);
 
-        // We need to build a list of parameter place-holders of values that are bound
-        // to the query. Each insert should have the exact same amount of parameter
-        // bindings so we will loop through the record and parameterize them all.
-        $parameters = collect($values)->map(function ($record) {
-            return '('.$this->parameterize($record).')';
-        })->implode(', ');
-
-        return "insert into $table ($columns) values $parameters";
+        return "insert into $table ($columns) values $data";
     }
 
-
     /**
-     * Get the format for database stored dates.
-     *
+     * Convert array to sql string
+     * @param $values
      * @return string
      */
-    public function getDateFormat()
+    protected function parseInsertValuesToSQL($values)
     {
-        return $this->dateFormat ?? parent::getDateFormat();
+        if (Arr::isAssoc($values)) {
+            return $this->parseInsertArrayToSQL($values);
+        }
+
+        return collect($values)->map(function ($item) {
+            return $this->parseInsertValuesToSQL($item);
+        })->implode(', ');
     }
 
     /**
-     * Set the format for database stored dates.
+     * Convert associative array to quoted string
      *
-     * @param $dateFormat
+     * @param $array
+     * @return string
      */
-    public function setDateFormat($dateFormat)
+    protected function parseInsertArrayToSQL($array)
     {
-        $this->dateFormat = $dateFormat;
+        $escapedString = collect($array)->map(function ($item) {
+            return is_string($item) ? \DB::getPdo()->quote($item) : $item;
+        })->implode(', ');
+
+        return "({$escapedString})";
     }
 }

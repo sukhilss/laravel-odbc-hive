@@ -5,19 +5,16 @@ namespace Sukhil\Database\Hive\Schema;
 use Closure;
 
 /**
- * Class Builder
- *
- * @package Cooperl\Database\DB2\Schema
+ * Class HiveBlueprint
+ * @package Sukhil\Database\Hive\Schema
  */
 class HiveBlueprint extends \Illuminate\Database\Schema\Blueprint
 {
     /**
-     * Create a new schema blueprint.
-     *
-     * @param string $table
-     * @param \Closure|null $callback
+     * HiveBlueprint constructor.
+     * @param $table
+     * @param Closure|null $callback
      * @param string $prefix
-     * @return void
      */
     public function __construct($table, Closure $callback = null, $prefix = '')
     {
@@ -26,9 +23,8 @@ class HiveBlueprint extends \Illuminate\Database\Schema\Blueprint
 
     /**
      * Create a new char column on the table.
-     *
-     * @param  string  $column
-     * @param  int|null  $length
+     * @param $column
+     * @param null $length
      * @return \Illuminate\Database\Schema\ColumnDefinition
      */
     public function varChar($column, $length = null)

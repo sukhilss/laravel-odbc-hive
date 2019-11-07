@@ -4,25 +4,41 @@ namespace Sukhil\Database\Hive\Connectors;
 
 use Illuminate\Database\Connectors\Connector;
 use Illuminate\Database\Connectors\ConnectorInterface;
+use Illuminate\Support\Str;
 
 /**
- * Class IBMConnector
- *
- * @package Cooperl\Database\DB2\Connectors
+ * Class HiveConnector
+ * @package Sukhil\Database\Hive\Connectors
  */
 class HiveConnector extends Connector implements ConnectorInterface
 {
     /**
+     * Create a connection for hive
      * @param array $config
-     *
      * @return \PDO
+     * @throws \Exception
      */
     public function connect(array $config)
     {
-        $dsn = $config['dsn'] ?? null;
-        $options = $this->getOptions($config);
-        $connection = $this->createConnection($dsn, $config, $options);
+        return $this->createConnection(
+            $this->getDsn($config), $config, $this->getOptions($config)
+        );
+    }
 
-        return $connection;
+    /**
+     * Create a DSN string from the configuration.
+     * @param array $config
+     * @return mixed|string|null
+     */
+    protected function getDsn(array $config)
+    {
+        $dsn = $config['dsn'] ?? null;
+
+        // Check whether string contains odbc or not
+        if (!Str::startsWith($dsn, 'odbc') && !empty($dsn)) {
+            $dsn = "odbc:{$dsn}";
+        }
+
+        return $dsn;
     }
 }
