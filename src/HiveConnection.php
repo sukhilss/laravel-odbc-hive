@@ -4,7 +4,6 @@ namespace Sukhil\Database\Hive;
 
 use Illuminate\Database\Connection;
 use PDO;
-use Sukhil\Database\Hive\Query\Grammars\HiveGrammar;
 use Sukhil\Database\Hive\Query\Grammars\HiveGrammar as QueryGrammar;
 use Sukhil\Database\Hive\Query\Processors\HiveProcessor;
 use Sukhil\Database\Hive\Schema\Builder;
@@ -26,6 +25,37 @@ class HiveConnection extends Connection
     public function __construct(PDO $pdo, $database = '', $tablePrefix = '', array $config = [])
     {
         parent::__construct($pdo, $database, $tablePrefix, $config);
+    }
+
+    /**
+     * Get a schema builder instance for the connection.
+     * @return Builder
+     */
+    public function getSchemaBuilder()
+    {
+        if (is_null($this->schemaGrammar)) {
+            $this->useDefaultSchemaGrammar();
+        }
+
+        return new Builder($this);
+    }
+
+    /**
+     * get default query grammer
+     * @return mixed
+     */
+    protected function getDefaultQueryGrammar()
+    {
+        return $this->withTablePrefix(new QueryGrammar);
+    }
+
+    /**
+     * Default grammar for specified Schema
+     * @return mixed
+     */
+    protected function getDefaultSchemaGrammar()
+    {
+        return $this->withTablePrefix(new SchemaGrammar);
     }
 
     /**

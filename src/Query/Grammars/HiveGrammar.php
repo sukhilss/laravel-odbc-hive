@@ -13,17 +13,6 @@ use Illuminate\Support\Arr;
 class HiveGrammar extends Grammar
 {
     /**
-     * Wrap a table in keyword identifiers.
-     *
-     * @param \Illuminate\Database\Query\Expression|string $table
-     * @return string
-     */
-    public function wrapTable($table)
-    {
-        return $table;
-    }
-
-    /**
      * Compile an insert statement into SQL.
      *
      * @param \Illuminate\Database\Query\Builder $query
@@ -80,5 +69,16 @@ class HiveGrammar extends Grammar
         })->implode(', ');
 
         return "({$escapedString})";
+    }
+
+    /**
+     * Wrap a table in keyword identifiers.
+     *
+     * @param \Illuminate\Database\Query\Expression|string $table
+     * @return string
+     */
+    public function wrapTable($table)
+    {
+        return $table;
     }
 }

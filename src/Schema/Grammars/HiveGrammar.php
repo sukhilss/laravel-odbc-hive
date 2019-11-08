@@ -16,14 +16,18 @@ class HiveGrammar extends Grammar
 
     /**
      * The possible column modifiers.
-     *
      * @var array
      */
     protected $preModifiers = [];
 
     /**
+     * The possible modifiers
+     * @var array
+     */
+    protected $modifiers = [];
+
+    /**
      * The possible column serials
-     *
      * @var array
      */
     protected $serials = [];

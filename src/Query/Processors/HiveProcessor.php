@@ -2,8 +2,10 @@
 
 namespace Sukhil\Database\Hive\Query\Processors;
 
+use Exception;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Processors\Processor;
+use Sukhil\Database\Hive\HiveConnection;
 use Sukhil\Database\Hive\Query\Grammars\HiveGrammar;
 
 /**
@@ -23,6 +25,6 @@ class HiveProcessor extends Processor
     public function processInsertGetId(Builder $query, $sql, $values, $sequence = null)
     {
         $query->getConnection()->insert($sql, $values);
-        return null;
+        return is_array($values) ? reset($values) : null;
     }
 }
