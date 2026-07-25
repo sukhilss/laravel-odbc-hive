@@ -1,44 +1,44 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sukhil\Database\Hive\Connectors;
 
 use Illuminate\Database\Connectors\Connector;
 use Illuminate\Database\Connectors\ConnectorInterface;
 use Illuminate\Support\Str;
+use PDO;
 
 /**
- * Class HiveConnector
- * @package Sukhil\Database\Hive\Connectors
+ * Opens PDO_ODBC connections to Hive.
  */
 class HiveConnector extends Connector implements ConnectorInterface
 {
     /**
-     * Create a connection for hive
-     * @param array $config
-     * @return \PDO
-     * @throws \Exception
+     * @param  array<string, mixed>  $config
      */
-    public function connect(array $config)
+    public function connect(array $config): PDO
     {
         return $this->createConnection(
-            $this->getDsn($config), $config, $this->getOptions($config)
+            (string) $this->getDsn($config),
+            $config,
+            $this->getOptions($config)
         );
     }
 
     /**
-     * Create a DSN string from the configuration.
-     * @param array $config
-     * @return mixed|string|null
+     * Build the ODBC DSN, adding the odbc: scheme when absent.
+     *
+     * @param  array<string, mixed>  $config
      */
-    protected function getDsn(array $config)
+    protected function getDsn(array $config): ?string
     {
         $dsn = $config['dsn'] ?? null;
 
-        // Check whether string contains odbc or not
-        if (!Str::startsWith($dsn, 'odbc') && !empty($dsn)) {
-            $dsn = "odbc:{$dsn}";
+        if (! is_string($dsn) || $dsn === '') {
+            return null;
         }
 
-        return $dsn;
+        return Str::startsWith($dsn, 'odbc') ? $dsn : "odbc:{$dsn}";
     }
 }
