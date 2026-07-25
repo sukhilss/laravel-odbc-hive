@@ -81,7 +81,17 @@ final class HiveValueQuoterTest extends TestCase
         $this->assertSame("'a\\nb'", $this->quoter->quoteString("a\nb"));
         $this->assertSame("'a\\rb'", $this->quoter->quoteString("a\rb"));
         $this->assertSame("'a\\tb'", $this->quoter->quoteString("a\tb"));
-        $this->assertSame("'a\\0b'", $this->quoter->quoteString("a\0b"));
+        $this->assertSame("'a\\000b'", $this->quoter->quoteString("a\0b"));
+    }
+
+    public function test_it_escapes_nul_unambiguously_when_digits_follow(): void
+    {
+        // Hive's lexer defines OctalEscape as '\' ('0'..'3')('0'..'7')('0'..'7'),
+        // so a one-digit \0 followed by digits is swallowed into a multi-digit
+        // octal escape: NUL,'1','2' emitted as '\012' decodes back as a single
+        // newline (0x0A), silently corrupting the row. The escape caps at three
+        // digits, so \000 followed by '1','2' round-trips intact.
+        $this->assertSame("'A\\00012'", $this->quoter->quoteString("A\x00" . '12'));
     }
 
     public function test_it_handles_an_empty_string(): void
@@ -104,6 +114,49 @@ final class HiveValueQuoterTest extends TestCase
     {
         $this->assertSame('42', $this->quoter->literal(42));
         $this->assertSame('1.5', $this->quoter->literal(1.5));
+    }
+
+    public function test_literal_preserves_full_float_precision(): void
+    {
+        // A plain string cast honours PHP's precision=14 ini setting, which
+        // would write 0.33333333333333 into the warehouse and discard three
+        // significant digits of the double.
+        $this->assertSame('0.3333333333333333', $this->quoter->literal(1 / 3));
+        $this->assertSame((float) '0.3333333333333333', 1 / 3);
+        $this->assertSame('0.1', $this->quoter->literal(0.1));
+        $this->assertSame('1.0E+25', $this->quoter->literal(1.0e25));
+    }
+
+    public function test_literal_rejects_nan(): void
+    {
+        // NAN has no HiveQL literal; the bare word NAN parses as a column
+        // reference or is rejected outright.
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Cannot render the float NAN as a Hive literal: HiveQL has no NaN or infinity literal.'
+        );
+
+        $this->quoter->literal(NAN);
+    }
+
+    public function test_literal_rejects_infinity(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Cannot render the float INF as a Hive literal: HiveQL has no NaN or infinity literal.'
+        );
+
+        $this->quoter->literal(INF);
+    }
+
+    public function test_literal_rejects_negative_infinity(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Cannot render the float -INF as a Hive literal: HiveQL has no NaN or infinity literal.'
+        );
+
+        $this->quoter->literal(-INF);
     }
 
     public function test_literal_quotes_strings(): void
