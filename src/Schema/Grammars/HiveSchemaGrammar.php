@@ -9,6 +9,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Grammars\Grammar;
 use Illuminate\Support\Fluent;
 use Sukhil\Database\Hive\Schema\HiveBlueprint;
+use Sukhil\Database\Hive\Support\HiveIdentifier;
 use Sukhil\Database\Hive\Support\HiveTableOptions;
 
 /**
@@ -26,6 +27,19 @@ class HiveSchemaGrammar extends Grammar
      * and has no setConnection(). Laravel 11's parent declares no constructor
      * but does have setConnection(). Constructors are exempt from PHP's
      * signature-compatibility rules, so this declaration is legal against both.
+     *
+     * This is one of exactly FOUR sites in src/ permitted to branch on the
+     * installed Laravel version; the others are HiveConnection::configureGrammar(),
+     * HiveSchemaBuilder::createBlueprint() and HiveQueryGrammar::__construct().
+     * Two detection mechanisms are in use: those first two sites ask
+     * IlluminateVersion::usesConnectionAwareSchemaApi(); this constructor and
+     * HiveQueryGrammar's ask method_exists(parent::class, '__construct')
+     * instead, because they must decide how to initialise their own parent
+     * before that parent has been initialised, and the fact they need is
+     * specifically whether their parent declares a constructor — which the
+     * probe answers directly rather than by proxy. IlluminateVersion holds the
+     * authoritative note, including why one boolean stands in for six
+     * divergences.
      */
     public function __construct(?Connection $connection = null)
     {
@@ -55,7 +69,19 @@ class HiveSchemaGrammar extends Grammar
     protected $serials = [];
 
     /**
-     * Hive identifiers are not quoted; only embedded double quotes are escaped.
+     * Emit a DDL identifier verbatim, after proving it safe.
+     *
+     * Hive identifiers are not quoted here (a double quote delimits a string
+     * literal in Hive, not an identifier), so the identifier IS the SQL and has
+     * to be validated before it is emitted. DDL identifiers come from migration
+     * source rather than request data, so the exposure is far smaller than on
+     * the query side, but the guard belongs on both paths — and doubling an
+     * embedded double quote, as this previously did, escaped nothing that Hive
+     * would have treated as an escape.
+     *
+     * wrapTable() is intentionally NOT overridden: the base implementation
+     * already routes every segment through this method and applies the table
+     * prefix using whichever mechanism the installed major provides.
      */
     protected function wrapValue($value): string
     {
@@ -63,7 +89,7 @@ class HiveSchemaGrammar extends Grammar
             return $value;
         }
 
-        return str_replace('"', '""', (string) $value);
+        return HiveIdentifier::assertSafe((string) $value);
     }
 
     /**

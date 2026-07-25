@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sukhil\Database\Hive\Tests\Unit\Schema;
 
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Sukhil\Database\Hive\Schema\Grammars\HiveSchemaGrammar;
 use Sukhil\Database\Hive\Schema\HiveBlueprint;
@@ -125,6 +126,22 @@ final class HiveSchemaGrammarTest extends TestCase
         });
 
         $this->assertStringStartsWith('create table sample_table (', $sql[0]);
+    }
+
+    public function test_it_rejects_an_unsafe_column_identifier(): void
+    {
+        // DDL identifiers come from migration source rather than request data,
+        // so this is a far smaller exposure than on the query side — but an
+        // unquoted identifier IS the SQL, so it is validated on both paths.
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            "Unsafe Hive identifier 'name string, x int) --': "
+            . 'only letters, digits and underscores are permitted.'
+        );
+
+        $this->compile(function (HiveBlueprint $table): void {
+            $table->string('name string, x int) --');
+        });
     }
 
     public function test_it_emits_stored_as_orc(): void

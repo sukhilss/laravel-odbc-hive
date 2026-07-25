@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Sukhil\Database\Hive\Tests\Unit\Query;
 
+use Illuminate\Database\Connection;
 use Illuminate\Database\Query\Builder;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Sukhil\Database\Hive\Query\Grammars\HiveQueryGrammar;
+use Sukhil\Database\Hive\Query\Processors\HiveProcessor;
 use Sukhil\Database\Hive\Tests\Support\BlueprintFactory;
 
 final class HiveQueryGrammarTest extends TestCase
@@ -26,6 +28,37 @@ final class HiveQueryGrammarTest extends TestCase
         $builder->from = $table;
 
         return $builder;
+    }
+
+    /**
+     * A connection carrying a non-empty table prefix.
+     *
+     * The prefix is read from the connection on both majors: Laravel 12's
+     * grammars derive it from their connection, and Laravel 11's
+     * Connection::withTablePrefix() copies this same value onto the grammar.
+     */
+    private function prefixedConnection(): Connection
+    {
+        $connection = BlueprintFactory::connection();
+        $connection->setTablePrefix('pfx_');
+
+        return $connection;
+    }
+
+    /**
+     * A REAL query builder, not a mock.
+     *
+     * Mocking the builder and assigning `$builder->from` by hand exercises only
+     * compileInsert(), which is how three defects in wrapValue()/wrapTable()
+     * (raw identifier interpolation, a fatal on Expression tables, and a
+     * silently dropped table prefix) survived thirteen rounds of review.
+     *
+     * @param  array<int, string>  $columns
+     */
+    private function realQuery(Connection $connection, array $columns = ['*']): Builder
+    {
+        return (new Builder($connection, new HiveQueryGrammar($connection), new HiveProcessor()))
+            ->select($columns);
     }
 
     public function test_it_does_not_wrap_table_names(): void
@@ -147,6 +180,124 @@ final class HiveQueryGrammarTest extends TestCase
         );
 
         $this->assertSame('insert into events (name) values (NULL)', $sql);
+    }
+
+    public function test_it_compiles_a_select_with_a_where_using_the_table_prefix(): void
+    {
+        $connection = $this->prefixedConnection();
+        $query = $this->realQuery($connection)->from('events')->where('name', 'Alice');
+
+        // The prefix must reach queries, not just DDL: migrations create
+        // pfx_events, so a read of `events` would target a table that does not
+        // exist. Identifiers stay unquoted — Hive's double quote delimits a
+        // string literal, not an identifier.
+        $this->assertSame('select * from pfx_events where name = ?', $query->toSql());
+    }
+
+    public function test_it_compiles_a_select_with_explicit_columns_and_a_join(): void
+    {
+        $connection = $this->prefixedConnection();
+        $query = $this->realQuery($connection, ['events.name', 'venues.city'])
+            ->from('events')
+            ->join('venues', 'events.venue_id', '=', 'venues.id')
+            ->orderBy('events.name');
+
+        $this->assertSame(
+            'select pfx_events.name, pfx_venues.city from pfx_events '
+            . 'inner join pfx_venues on pfx_events.venue_id = pfx_venues.id '
+            . 'order by pfx_events.name asc',
+            $query->toSql()
+        );
+    }
+
+    public function test_it_compiles_an_update_and_a_delete_using_the_table_prefix(): void
+    {
+        $connection = $this->prefixedConnection();
+        $grammar = new HiveQueryGrammar($connection);
+        $query = $this->realQuery($connection)->from('events')->where('id', 1);
+
+        $this->assertSame(
+            'update pfx_events set name = ? where id = ?',
+            $grammar->compileUpdate($query, ['name' => 'Alice'])
+        );
+        $this->assertSame(
+            'delete from pfx_events where id = ?',
+            $grammar->compileDelete($query)
+        );
+    }
+
+    public function test_it_compiles_an_insert_using_the_table_prefix(): void
+    {
+        $connection = $this->prefixedConnection();
+        $query = $this->realQuery($connection)->from('events');
+
+        $this->assertSame(
+            "insert into pfx_events (name) values ('Alice')",
+            (new HiveQueryGrammar($connection))->compileInsert($query, ['name' => 'Alice'])
+        );
+    }
+
+    public function test_it_prefixes_only_the_table_of_a_schema_qualified_name(): void
+    {
+        $connection = $this->prefixedConnection();
+        $query = $this->realQuery($connection)->from('analytics.events');
+
+        $this->assertSame('select * from analytics.pfx_events', $query->toSql());
+    }
+
+    public function test_it_rejects_an_unsafe_identifier_used_as_an_insert_column(): void
+    {
+        // Array keys are attacker-controlled in ->insert($request->all()). This
+        // key previously escaped the column list entirely and emitted
+        //   insert into events (name) values (@@x --) values ('y')
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            "Unsafe Hive identifier 'name) values (@@x --': "
+            . 'only letters, digits and underscores are permitted.'
+        );
+
+        $connection = $this->prefixedConnection();
+
+        (new HiveQueryGrammar($connection))->compileInsert(
+            $this->realQuery($connection)->from('events'),
+            ['name) values (@@x --' => 'y']
+        );
+    }
+
+    public function test_it_rejects_an_unsafe_identifier_used_as_a_select_column(): void
+    {
+        // ->select($request->input('columns')) is the read-side equivalent.
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            "Unsafe Hive identifier 'name from events; drop table users --': "
+            . 'only letters, digits and underscores are permitted.'
+        );
+
+        $this->realQuery($this->prefixedConnection(), ['name from events; drop table users --'])
+            ->from('events')
+            ->toSql();
+    }
+
+    public function test_it_rejects_an_unsafe_table_name(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            "Unsafe Hive identifier 'pfx_events; drop table users --': "
+            . 'only letters, digits and underscores are permitted.'
+        );
+
+        $this->realQuery($this->prefixedConnection())
+            ->from('events; drop table users --')
+            ->toSql();
+    }
+
+    public function test_it_compiles_an_expression_table_without_converting_it_to_a_string(): void
+    {
+        // Laravel 10 dropped Expression::__toString(), so casting the table
+        // fataled outright on fromRaw()/fromSub()/joinSub().
+        $query = $this->realQuery(BlueprintFactory::connection())->fromRaw('(select 1) as t');
+
+        $this->assertSame('select * from (select 1) as t', $query->toSql());
     }
 
     public function test_it_never_calls_pdo_quote(): void
