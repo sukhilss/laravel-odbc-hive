@@ -30,11 +30,9 @@ final class BlueprintFactory
         ?Closure $callback = null,
         ?SchemaGrammar $schemaGrammar = null,
     ): HiveBlueprint {
-        $connection = self::connection($schemaGrammar);
-
         if (IlluminateVersion::detect()->usesConnectionAwareSchemaApi()) {
             /** @phpstan-ignore-next-line Laravel 12 signature */
-            return new HiveBlueprint($connection, $table, $callback);
+            return new HiveBlueprint(self::connection($schemaGrammar), $table, $callback);
         }
 
         /** @phpstan-ignore-next-line Laravel 11 signature */

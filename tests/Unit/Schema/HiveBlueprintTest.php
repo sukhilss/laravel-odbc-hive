@@ -72,6 +72,7 @@ final class HiveBlueprintTest extends TestCase
         $this->assertSame('/warehouse/sample', $blueprint->hiveOptions()->location());
         $this->assertSame(',', $blueprint->hiveOptions()->delimiter());
         $this->assertSame('UTF-8', $blueprint->hiveOptions()->charset());
+        $this->assertSame('UTF-8', $blueprint->charset);
     }
 
     public function test_hive_options_returns_the_same_instance_on_repeated_calls(): void
