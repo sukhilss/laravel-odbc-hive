@@ -68,7 +68,10 @@ final class HiveSchemaBuilderTest extends TestCase
             $builder->blueprintResolver(function (string $table, ?Closure $callback, string $prefix) use ($sentinel): HiveBlueprint {
                 $this->assertSame('other_table', $table);
                 $this->assertNull($callback);
-                $this->assertIsString($prefix);
+                // BlueprintFactory::connection() sets no prefix/prefix_indexes
+                // config, so HiveSchemaBuilder::createBlueprint deterministically
+                // passes '' here (see src/Schema/HiveSchemaBuilder.php:50-52).
+                $this->assertSame('', $prefix);
 
                 return $sentinel;
             });
