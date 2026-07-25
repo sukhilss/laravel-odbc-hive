@@ -68,6 +68,41 @@ $optioned->delimiter = ',';
 $optioned->location = '/warehouse/optioned';
 $golden['table_options'] = $optioned->toSql($connection, $grammar);
 
+// Guard against a vacuous capture: an empty or malformed fixture file would
+// let Task 12's parity test pass without verifying anything, which is worse
+// than not having this harness at all.
+$expectedFixtureCount = 5;
+
+if (count($golden) !== $expectedFixtureCount) {
+    fwrite(
+        STDERR,
+        "Capture failed: expected {$expectedFixtureCount} fixtures, got " . count($golden) . ".\n"
+    );
+    exit(1);
+}
+
+foreach ($golden as $name => $statements) {
+    if (!is_array($statements) || count($statements) === 0) {
+        fwrite(STDERR, "Capture failed: fixture '{$name}' produced no SQL statements.\n");
+        exit(1);
+    }
+
+    foreach ($statements as $statement) {
+        if (!is_string($statement) || trim($statement) === '') {
+            fwrite(STDERR, "Capture failed: fixture '{$name}' contains an empty statement.\n");
+            exit(1);
+        }
+
+        if (stripos($statement, 'create table') === false) {
+            fwrite(
+                STDERR,
+                "Capture failed: fixture '{$name}' statement does not contain 'create table': {$statement}\n"
+            );
+            exit(1);
+        }
+    }
+}
+
 file_put_contents(
     '/app/tests/fixtures/golden-v6-schema.json',
     json_encode($golden, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n"
