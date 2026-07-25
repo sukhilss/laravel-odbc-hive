@@ -51,12 +51,28 @@ final class HiveSchemaBuilderTest extends TestCase
         $sentinel = $this->createBlueprint($builder, 'ignored');
         $expectedConnection = $builder->getConnection();
 
-        $builder->blueprintResolver(function (Connection $connection, string $table, ?Closure $callback) use ($sentinel, $expectedConnection): HiveBlueprint {
-            $this->assertSame($expectedConnection, $connection);
-            $this->assertSame('other_table', $table);
+        // The resolver's argument shape is version-divergent (see
+        // HiveSchemaBuilder::createBlueprint), so the closure registered here
+        // must match whichever signature the actually-installed Laravel uses
+        // — not assume Laravel 12's shape unconditionally. The dedicated
+        // version-override test below covers the Laravel 11 shape in
+        // isolation regardless of what is installed.
+        if (IlluminateVersion::detect()->usesConnectionAwareSchemaApi()) {
+            $builder->blueprintResolver(function (Connection $connection, string $table, ?Closure $callback) use ($sentinel, $expectedConnection): HiveBlueprint {
+                $this->assertSame($expectedConnection, $connection);
+                $this->assertSame('other_table', $table);
 
-            return $sentinel;
-        });
+                return $sentinel;
+            });
+        } else {
+            $builder->blueprintResolver(function (string $table, ?Closure $callback, string $prefix) use ($sentinel): HiveBlueprint {
+                $this->assertSame('other_table', $table);
+                $this->assertNull($callback);
+                $this->assertIsString($prefix);
+
+                return $sentinel;
+            });
+        }
 
         $this->assertSame($sentinel, $this->createBlueprint($builder, 'other_table'));
     }
