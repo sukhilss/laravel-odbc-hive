@@ -41,4 +41,35 @@ final class HiveTableOptionsTest extends TestCase
         $this->assertFalse((new HiveTableOptions())->setDelimiter(',')->isEmpty());
         $this->assertFalse((new HiveTableOptions())->setLocation('/w')->isEmpty());
     }
+
+    /**
+     * @dataProvider optionClearanceProvider
+     */
+    public function test_setting_an_option_to_null_clears_it(string $setter, string $accessor, string $initialValue): void
+    {
+        $options = new HiveTableOptions();
+
+        // Set the option
+        $options->$setter($initialValue);
+        $this->assertSame($initialValue, $options->$accessor());
+        $this->assertFalse($options->isEmpty());
+
+        // Clear the option by passing null
+        $options->$setter(null);
+        $this->assertNull($options->$accessor());
+        $this->assertTrue($options->isEmpty());
+    }
+
+    /**
+     * @return array<int, array<int, string>>
+     */
+    public static function optionClearanceProvider(): array
+    {
+        return [
+            ['setCharset', 'charset', 'UTF-8'],
+            ['setStoredAs', 'storedAs', 'ORC'],
+            ['setDelimiter', 'delimiter', ','],
+            ['setLocation', 'location', '/warehouse'],
+        ];
+    }
 }
