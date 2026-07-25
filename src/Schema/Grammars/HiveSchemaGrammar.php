@@ -97,6 +97,8 @@ class HiveSchemaGrammar extends Grammar
      *
      * The third parameter is optional so this single declaration satisfies both
      * Laravel 11 (which declares it required) and Laravel 12 (which omits it).
+     *
+     * @param  Fluent<string, mixed>  $command
      */
     public function compileCreate(
         Blueprint $blueprint,
@@ -171,6 +173,8 @@ class HiveSchemaGrammar extends Grammar
 
     /**
      * CHAR is fixed-length; shorter values are space-padded. Maximum 255.
+     *
+     * @param  Fluent<string, mixed>  $column
      */
     protected function typeChar(Fluent $column): string
     {
@@ -179,6 +183,8 @@ class HiveSchemaGrammar extends Grammar
 
     /**
      * Hive STRING is unbounded, unlike VARCHAR.
+     *
+     * @param  Fluent<string, mixed>  $column
      */
     protected function typeString(Fluent $column): string
     {
@@ -187,62 +193,97 @@ class HiveSchemaGrammar extends Grammar
 
     /**
      * VARCHAR takes a length between 1 and 65535. Hive truncates silently.
+     *
+     * @param  Fluent<string, mixed>  $column
      */
     protected function typeVarChar(Fluent $column): string
     {
         return 'varchar('.($column->get('length') ?? 65535).')';
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeText(Fluent $column): string
     {
         return $this->typeVarChar($column);
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeMediumText(Fluent $column): string
     {
         return $this->typeVarChar($column);
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeLongText(Fluent $column): string
     {
         return $this->typeVarChar($column);
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeBigInteger(Fluent $column): string
     {
         return 'bigint';
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeInteger(Fluent $column): string
     {
         return 'int';
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeMediumInteger(Fluent $column): string
     {
         return 'int';
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeTinyInteger(Fluent $column): string
     {
         return 'tinyint';
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeSmallInteger(Fluent $column): string
     {
         return 'smallint';
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeNumeric(Fluent $column): string
     {
         return "numeric({$column->get('total')}, {$column->get('places')})";
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeFloat(Fluent $column): string
     {
         return 'float';
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeDouble(Fluent $column): string
     {
         $total = $column->get('total');
@@ -255,31 +296,49 @@ class HiveSchemaGrammar extends Grammar
         return 'double';
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeDecimal(Fluent $column): string
     {
         return "decimal({$column->get('total')}, {$column->get('places')})";
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeBoolean(Fluent $column): string
     {
         return 'boolean';
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeDate(Fluent $column): string
     {
         return 'date';
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeDateTime(Fluent $column): string
     {
         return $this->typeTimestamp($column);
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeTimestamp(Fluent $column): string
     {
         return 'timestamp';
     }
 
+    /**
+     * @param  Fluent<string, mixed>  $column
+     */
     protected function typeBinary(Fluent $column): string
     {
         return 'binary';

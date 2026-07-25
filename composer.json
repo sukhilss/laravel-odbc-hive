@@ -51,6 +51,6 @@
         "test": "phpunit",
         "lint": "pint --test",
         "fix": "pint",
-        "analyse": "phpstan analyse"
+        "analyse": "phpstan analyse --memory-limit=1G"
     }
 }
