@@ -7,7 +7,7 @@ namespace Sukhil\Database\Hive\Query\Grammars;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Grammars\Grammar;
-use Illuminate\Support\Arr;
+use InvalidArgumentException;
 use Sukhil\Database\Hive\Support\HiveValueQuoter;
 
 /**
@@ -73,20 +73,19 @@ class HiveQueryGrammar extends Grammar
     }
 
     /**
-     * @param  array<mixed>  $values
+     * @param  array<mixed>  $values  always a list of rows: compileInsert()
+     *   normalises a single associative row into a one-element list before
+     *   calling this, so there is no bare-associative-row case to branch on
      * @param  array<int, string>  $columnNames  column order from the first
      *   row, used to keep every row's values aligned to that order even when
      *   a later row's own keys come in a different order
      */
     protected function compileRows(array $values, array $columnNames): string
     {
-        if (Arr::isAssoc($values)) {
-            return $this->compileRow($values, $columnNames);
-        }
-
         return implode(', ', array_map(
-            fn (array $row): string => $this->compileRow($row, $columnNames),
-            $values
+            fn (array $row, int $index): string => $this->compileRow($row, $columnNames, $index),
+            $values,
+            array_keys($values)
         ));
     }
 
@@ -94,12 +93,52 @@ class HiveQueryGrammar extends Grammar
      * @param  array<string, mixed>  $row
      * @param  array<int, string>  $columnNames
      */
-    protected function compileRow(array $row, array $columnNames): string
+    protected function compileRow(array $row, array $columnNames, int $index): string
     {
+        $this->assertColumnsMatch($row, $columnNames, $index);
+
         return '(' . implode(', ', array_map(
-            fn (string $column): string => $this->quoter->literal($row[$column] ?? null),
+            fn (string $column): string => $this->quoter->literal($row[$column]),
             $columnNames
         )) . ')';
+    }
+
+    /**
+     * Guard against a batch row whose keys don't match the first row's.
+     *
+     * Without this, a missing key would silently render as NULL and an
+     * extra key would silently be dropped — both execute cleanly and write
+     * wrong data with no signal anything is amiss, which is the wrong
+     * failure mode for a class whose whole purpose is precise literal
+     * emission.
+     *
+     * @param  array<string, mixed>  $row
+     * @param  array<int, string>  $columnNames
+     */
+    private function assertColumnsMatch(array $row, array $columnNames, int $index): void
+    {
+        $missing = array_values(array_diff($columnNames, array_keys($row)));
+        $unexpected = array_values(array_diff(array_keys($row), $columnNames));
+
+        if ($missing === [] && $unexpected === []) {
+            return;
+        }
+
+        $details = [];
+
+        if ($missing !== []) {
+            $details[] = 'missing [' . implode(', ', $missing) . ']';
+        }
+
+        if ($unexpected !== []) {
+            $details[] = 'unexpected [' . implode(', ', $unexpected) . ']';
+        }
+
+        throw new InvalidArgumentException(sprintf(
+            'Insert row %d has mismatched columns: %s. All rows in a batch insert must share the same columns.',
+            $index,
+            implode(', ', $details)
+        ));
     }
 
     /**

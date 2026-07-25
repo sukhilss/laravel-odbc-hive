@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sukhil\Database\Hive\Tests\Unit\Query;
 
 use Illuminate\Database\Query\Builder;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Sukhil\Database\Hive\Query\Grammars\HiveQueryGrammar;
 use Sukhil\Database\Hive\Tests\Support\BlueprintFactory;
@@ -78,6 +79,45 @@ final class HiveQueryGrammarTest extends TestCase
         $this->assertSame(
             "insert into events (name, age) values ('Alice', 30), ('Bob', 25)",
             $sql
+        );
+    }
+
+    public function test_it_throws_when_a_batch_row_is_missing_a_column(): void
+    {
+        // A missing key must not silently become NULL: it can execute
+        // cleanly while writing wrong data, with no signal anything is
+        // amiss.
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Insert row 1 has mismatched columns: missing [age]. '
+            . 'All rows in a batch insert must share the same columns.'
+        );
+
+        $this->grammar->compileInsert(
+            $this->query('events'),
+            [
+                ['name' => 'Alice', 'age' => 30],
+                ['name' => 'Bob'],
+            ]
+        );
+    }
+
+    public function test_it_throws_when_a_batch_row_has_an_unexpected_column(): void
+    {
+        // An extra key must not be silently dropped: it can execute cleanly
+        // while discarding data, with no signal anything is amiss.
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Insert row 1 has mismatched columns: unexpected [city]. '
+            . 'All rows in a batch insert must share the same columns.'
+        );
+
+        $this->grammar->compileInsert(
+            $this->query('events'),
+            [
+                ['name' => 'Alice', 'age' => 30],
+                ['name' => 'Bob', 'age' => 25, 'city' => 'NYC'],
+            ]
         );
     }
 
