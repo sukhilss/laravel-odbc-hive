@@ -36,7 +36,9 @@ final class HiveTableOptionsTest extends TestCase
     public function test_it_reports_whether_any_option_is_set(): void
     {
         $this->assertTrue((new HiveTableOptions())->isEmpty());
+        $this->assertFalse((new HiveTableOptions())->setCharset('UTF-8')->isEmpty());
         $this->assertFalse((new HiveTableOptions())->setStoredAs('ORC')->isEmpty());
+        $this->assertFalse((new HiveTableOptions())->setDelimiter(',')->isEmpty());
         $this->assertFalse((new HiveTableOptions())->setLocation('/w')->isEmpty());
     }
 }
