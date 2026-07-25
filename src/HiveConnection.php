@@ -18,10 +18,16 @@ use Sukhil\Database\Hive\Support\IlluminateVersion;
  * narrowing that in a child both violates contravariance and breaks lazy
  * connections.
  *
- * `configureGrammar()` is one of only four sites in this package permitted to
- * branch on the installed Laravel version: Laravel 12 takes the connection
- * through the grammar constructor and derives the table prefix from it;
- * Laravel 11 needs withTablePrefix() applied separately.
+ * `configureGrammar()` is one of exactly FOUR sites in src/ permitted to branch
+ * on the installed Laravel version; the others are
+ * HiveSchemaBuilder::createBlueprint(), HiveQueryGrammar::__construct() and
+ * HiveSchemaGrammar::__construct(). Two detection mechanisms are in use: this
+ * site and the schema builder ask IlluminateVersion::usesConnectionAwareSchemaApi();
+ * the two grammar constructors ask method_exists(parent::class, '__construct')
+ * instead, because they must decide how to initialise their own parent before
+ * that parent has been initialised, and the fact they need is specifically
+ * whether their parent declares a constructor. IlluminateVersion holds the
+ * authoritative note, including why one boolean stands in for six divergences.
  */
 class HiveConnection extends Connection
 {

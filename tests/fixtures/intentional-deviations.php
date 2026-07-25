@@ -8,6 +8,16 @@ declare(strict_types=1);
  * GoldenParityTest skips these and prints the reason. Every entry is a
  * deliberate, reviewed behavior change — not a tolerated regression.
  *
+ * SCOPE: every key here must name an entry in golden-v6-schema.json, which the
+ * suite enforces. The golden capture covers schema DDL only, so deliberate
+ * divergences on the QUERY side have no home in this file and must not be
+ * invented one. The notable such divergence is identifier quoting: v6's query
+ * grammar inherited the base Grammar and emitted `"col"`, while v7 emits `col`
+ * (a double quote delimits a string literal in Hive, not an identifier) and
+ * validates the identifier instead of quoting it. v6's SCHEMA grammar already
+ * emitted identifiers unquoted, which is why every golden fixture still matches
+ * byte-for-byte.
+ *
  * @return array<string, string>
  */
 return [
