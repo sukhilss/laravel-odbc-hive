@@ -1,30 +1,39 @@
 {
     "name": "sukhilss/laravel-odbc-hive",
-    "description": "laravel-odbc-hive is a simple hive service provider for Laravel. It provides hive Connection by extending the Illuminate Database component of the laravel framework.",
-    "keywords": [
-        "Laravel",
-        "Hive",
-        "Database",
-        "PDO",
-        "ODBC"
-    ],
+    "description": "Apache Hive database driver for Laravel, over ODBC/PDO.",
+    "keywords": ["laravel", "hive", "database", "pdo", "odbc", "hadoop"],
     "license": "MIT",
     "authors": [
-    {
-        "name": "Sukhil S S",
-        "role": "Developer"
-    }
+        {
+            "name": "Sukhil S S",
+            "role": "Developer"
+        }
     ],
     "require": {
-        "php": "^7.2",
-        "illuminate/database": "^6.0"
+        "php": "^8.2",
+        "ext-pdo": "*",
+        "illuminate/database": "^11.0 || ^12.0",
+        "illuminate/support": "^11.0 || ^12.0"
     },
     "require-dev": {
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.18",
+        "orchestra/testbench": "^9.0 || ^10.0",
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^10.5 || ^11.0"
+    },
+    "suggest": {
+        "ext-odbc": "Required to connect to a real Hive server over ODBC."
     },
     "autoload": {
-    "psr-4": {
-        "Sukhil\\Database\\Hive\\": "src/"
-    }
+        "psr-4": {
+            "Sukhil\\Database\\Hive\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Sukhil\\Database\\Hive\\Tests\\": "tests/"
+        }
     },
     "extra": {
         "laravel": {
@@ -32,5 +41,16 @@
                 "Sukhil\\Database\\Hive\\HiveServiceProvider"
             ]
         }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "phpunit",
+        "lint": "pint --test",
+        "fix": "pint",
+        "analyse": "phpstan analyse"
     }
 }
