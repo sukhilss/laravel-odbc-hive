@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Sukhil\Database\Hive\Tests\Unit\Support;
 
-use BackedEnum;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -34,9 +33,7 @@ enum IntStatus: int
  */
 final class StringableValue implements Stringable
 {
-    public function __construct(private string $value)
-    {
-    }
+    public function __construct(private string $value) {}
 
     public function __toString(): string
     {
@@ -50,7 +47,7 @@ final class HiveValueQuoterTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->quoter = new HiveValueQuoter();
+        $this->quoter = new HiveValueQuoter;
     }
 
     public function test_it_wraps_a_plain_string_in_single_quotes(): void
@@ -91,7 +88,7 @@ final class HiveValueQuoterTest extends TestCase
         // octal escape: NUL,'1','2' emitted as '\012' decodes back as a single
         // newline (0x0A), silently corrupting the row. The escape caps at three
         // digits, so \000 followed by '1','2' round-trips intact.
-        $this->assertSame("'A\\00012'", $this->quoter->quoteString("A\x00" . '12'));
+        $this->assertSame("'A\\00012'", $this->quoter->quoteString("A\x00".'12'));
     }
 
     public function test_it_handles_an_empty_string(): void

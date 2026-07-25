@@ -65,8 +65,7 @@ final class IlluminateVersion
 {
     public function __construct(
         private readonly bool $connectionAwareSchemaApi,
-    ) {
-    }
+    ) {}
 
     /**
      * Probe a class by inspecting its constructor's first parameter type.

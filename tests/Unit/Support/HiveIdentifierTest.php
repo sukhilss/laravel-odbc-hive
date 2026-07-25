@@ -70,7 +70,7 @@ final class HiveIdentifierTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
             "Unsafe Hive identifier 'name) values (@@x --': "
-            . 'only letters, digits and underscores are permitted.'
+            .'only letters, digits and underscores are permitted.'
         );
 
         HiveIdentifier::assertSafe('name) values (@@x --');

@@ -23,8 +23,7 @@ class HiveServiceProvider extends ServiceProvider
         // ConnectionFactory::createConnection() consults registered resolvers first.
         Connection::resolverFor(
             'hive',
-            fn ($pdo, $database, $prefix, $config): HiveConnection
-                => new HiveConnection($pdo, $database, $prefix, $config)
+            fn ($pdo, $database, $prefix, $config): HiveConnection => new HiveConnection($pdo, $database, $prefix, $config)
         );
     }
 
@@ -60,7 +59,7 @@ class HiveServiceProvider extends ServiceProvider
 
     protected function configPath(): string
     {
-        return __DIR__ . '/../config/hive.php';
+        return __DIR__.'/../config/hive.php';
     }
 
     /**

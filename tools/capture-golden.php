@@ -11,12 +11,12 @@
 
 require '/tmp/legacy-vendor/autoload.php';
 
-use Illuminate\Database\SQLiteConnection;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\SQLiteConnection;
 use Sukhil\Database\Hive\Schema\Grammars\HiveGrammar;
 
 $connection = new SQLiteConnection(new PDO('sqlite::memory:'));
-$grammar = new HiveGrammar();
+$grammar = new HiveGrammar;
 
 $fixtures = [
     'numeric_types' => function (Blueprint $table): void {
@@ -76,19 +76,19 @@ $expectedFixtureCount = 5;
 if (count($golden) !== $expectedFixtureCount) {
     fwrite(
         STDERR,
-        "Capture failed: expected {$expectedFixtureCount} fixtures, got " . count($golden) . ".\n"
+        "Capture failed: expected {$expectedFixtureCount} fixtures, got ".count($golden).".\n"
     );
     exit(1);
 }
 
 foreach ($golden as $name => $statements) {
-    if (!is_array($statements) || count($statements) === 0) {
+    if (! is_array($statements) || count($statements) === 0) {
         fwrite(STDERR, "Capture failed: fixture '{$name}' produced no SQL statements.\n");
         exit(1);
     }
 
     foreach ($statements as $statement) {
-        if (!is_string($statement) || trim($statement) === '') {
+        if (! is_string($statement) || trim($statement) === '') {
             fwrite(STDERR, "Capture failed: fixture '{$name}' contains an empty statement.\n");
             exit(1);
         }
@@ -105,7 +105,7 @@ foreach ($golden as $name => $statements) {
 
 file_put_contents(
     '/app/tests/fixtures/golden-v6-schema.json',
-    json_encode($golden, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n"
+    json_encode($golden, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n"
 );
 
-echo "Captured " . count($golden) . " fixtures.\n";
+echo 'Captured '.count($golden)." fixtures.\n";

@@ -15,7 +15,7 @@ final class HiveProcessorTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->processor = new HiveProcessor();
+        $this->processor = new HiveProcessor;
     }
 
     private function queryWithConnection(ConnectionInterface $connection): Builder

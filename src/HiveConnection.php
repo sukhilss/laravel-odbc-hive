@@ -59,7 +59,7 @@ class HiveConnection extends Connection
 
     protected function getDefaultPostProcessor(): HiveProcessor
     {
-        return new HiveProcessor();
+        return new HiveProcessor;
     }
 
     /**

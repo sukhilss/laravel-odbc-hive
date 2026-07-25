@@ -43,7 +43,7 @@ final class HiveValueQuoter
      */
     public function quoteString(string $value): string
     {
-        return "'" . strtr($value, self::ESCAPES) . "'";
+        return "'".strtr($value, self::ESCAPES)."'";
     }
 
     /**
@@ -63,7 +63,7 @@ final class HiveValueQuoter
             $value instanceof BackedEnum => $this->literal($value->value),
             $value instanceof Stringable => $this->quoteString((string) $value),
             default => throw new InvalidArgumentException(
-                'Cannot render value of type ' . get_debug_type($value) . ' as a Hive literal.'
+                'Cannot render value of type '.get_debug_type($value).' as a Hive literal.'
             ),
         };
     }

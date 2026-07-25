@@ -20,7 +20,7 @@ final class GoldenParityTest extends TestCase
      */
     private function golden(): array
     {
-        $path = __DIR__ . '/../../fixtures/golden-v6-schema.json';
+        $path = __DIR__.'/../../fixtures/golden-v6-schema.json';
 
         $this->assertFileExists($path, 'Run tools/capture-golden.sh first.');
 
@@ -37,7 +37,7 @@ final class GoldenParityTest extends TestCase
      */
     private function deviations(): array
     {
-        return require __DIR__ . '/../../fixtures/intentional-deviations.php';
+        return require __DIR__.'/../../fixtures/intentional-deviations.php';
     }
 
     /**
@@ -103,7 +103,7 @@ final class GoldenParityTest extends TestCase
                 $golden[$name],
                 $actual,
                 "Ported DDL for '{$name}' differs from v6. If deliberate, register it "
-                . 'in tests/fixtures/intentional-deviations.php with a reason.'
+                .'in tests/fixtures/intentional-deviations.php with a reason.'
             );
 
             $compared++;
@@ -154,7 +154,7 @@ final class GoldenParityTest extends TestCase
             $this->assertTrue(
                 in_array($name, $fixtureNames, true) || isset($deviations[$name]),
                 "Golden fixture '{$name}' is neither exercised in fixtures() nor registered in "
-                . 'intentional-deviations.php, so it is silently excluded from parity checking.'
+                .'intentional-deviations.php, so it is silently excluded from parity checking.'
             );
         }
     }

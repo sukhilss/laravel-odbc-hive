@@ -32,33 +32,33 @@ final class IlluminateVersionTest extends TestCase
         $type = $firstParameter->getType();
 
         $expected = $type instanceof \ReflectionNamedType
-            && is_a($type->getName(), \Illuminate\Database\Connection::class, true);
+            && is_a($type->getName(), Connection::class, true);
 
         $this->assertSame($expected, IlluminateVersion::detect()->usesConnectionAwareSchemaApi());
     }
 
-    public function test_forClass_detects_connection_typed_first_parameter(): void
+    public function test_for_class_detects_connection_typed_first_parameter(): void
     {
         $this->assertTrue(
             IlluminateVersion::forClass(StubConnectionTyped::class)->usesConnectionAwareSchemaApi()
         );
     }
 
-    public function test_forClass_rejects_untyped_first_parameter(): void
+    public function test_for_class_rejects_untyped_first_parameter(): void
     {
         $this->assertFalse(
             IlluminateVersion::forClass(StubUntypedParameter::class)->usesConnectionAwareSchemaApi()
         );
     }
 
-    public function test_forClass_rejects_union_type_first_parameter(): void
+    public function test_for_class_rejects_union_type_first_parameter(): void
     {
         $this->assertFalse(
             IlluminateVersion::forClass(StubUnionTyped::class)->usesConnectionAwareSchemaApi()
         );
     }
 
-    public function test_forClass_rejects_zero_parameter_constructor(): void
+    public function test_for_class_rejects_zero_parameter_constructor(): void
     {
         $this->assertFalse(
             IlluminateVersion::forClass(StubZeroParameters::class)->usesConnectionAwareSchemaApi()

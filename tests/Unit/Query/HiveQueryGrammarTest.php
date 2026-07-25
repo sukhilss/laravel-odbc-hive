@@ -57,7 +57,7 @@ final class HiveQueryGrammarTest extends TestCase
      */
     private function realQuery(Connection $connection, array $columns = ['*']): Builder
     {
-        return (new Builder($connection, new HiveQueryGrammar($connection), new HiveProcessor()))
+        return (new Builder($connection, new HiveQueryGrammar($connection), new HiveProcessor))
             ->select($columns);
     }
 
@@ -123,7 +123,7 @@ final class HiveQueryGrammarTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
             'Insert row 1 has mismatched columns: missing [age]. '
-            . 'All rows in a batch insert must share the same columns.'
+            .'All rows in a batch insert must share the same columns.'
         );
 
         $this->grammar->compileInsert(
@@ -142,7 +142,7 @@ final class HiveQueryGrammarTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
             'Insert row 1 has mismatched columns: unexpected [city]. '
-            . 'All rows in a batch insert must share the same columns.'
+            .'All rows in a batch insert must share the same columns.'
         );
 
         $this->grammar->compileInsert(
@@ -204,8 +204,8 @@ final class HiveQueryGrammarTest extends TestCase
 
         $this->assertSame(
             'select pfx_events.name, pfx_venues.city from pfx_events '
-            . 'inner join pfx_venues on pfx_events.venue_id = pfx_venues.id '
-            . 'order by pfx_events.name asc',
+            .'inner join pfx_venues on pfx_events.venue_id = pfx_venues.id '
+            .'order by pfx_events.name asc',
             $query->toSql()
         );
     }
@@ -253,7 +253,7 @@ final class HiveQueryGrammarTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
             "Unsafe Hive identifier 'name) values (@@x --': "
-            . 'only letters, digits and underscores are permitted.'
+            .'only letters, digits and underscores are permitted.'
         );
 
         $connection = $this->prefixedConnection();
@@ -270,7 +270,7 @@ final class HiveQueryGrammarTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
             "Unsafe Hive identifier 'name from events; drop table users --': "
-            . 'only letters, digits and underscores are permitted.'
+            .'only letters, digits and underscores are permitted.'
         );
 
         $this->realQuery($this->prefixedConnection(), ['name from events; drop table users --'])
@@ -283,7 +283,7 @@ final class HiveQueryGrammarTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
             "Unsafe Hive identifier 'pfx_events; drop table users --': "
-            . 'only letters, digits and underscores are permitted.'
+            .'only letters, digits and underscores are permitted.'
         );
 
         $this->realQuery($this->prefixedConnection())
@@ -305,7 +305,7 @@ final class HiveQueryGrammarTest extends TestCase
         // PDO_ODBC does not implement quote(); it returns false. Guard against
         // any future reintroduction of a PDO dependency in this class.
         $source = file_get_contents(
-            __DIR__ . '/../../../src/Query/Grammars/HiveQueryGrammar.php'
+            __DIR__.'/../../../src/Query/Grammars/HiveQueryGrammar.php'
         );
 
         $this->assertIsString($source);

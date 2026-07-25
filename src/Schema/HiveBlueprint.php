@@ -73,7 +73,7 @@ class HiveBlueprint extends Blueprint
      * The parent implementation is still called so the inherited $charset
      * property stays in sync for any code that reads it directly.
      *
-     * @param string $charset
+     * @param  string  $charset
      */
     public function charset($charset): self
     {
@@ -86,6 +86,6 @@ class HiveBlueprint extends Blueprint
 
     public function hiveOptions(): HiveTableOptions
     {
-        return $this->hiveOptions ??= new HiveTableOptions();
+        return $this->hiveOptions ??= new HiveTableOptions;
     }
 }

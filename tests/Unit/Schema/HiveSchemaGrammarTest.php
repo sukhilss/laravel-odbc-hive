@@ -136,7 +136,7 @@ final class HiveSchemaGrammarTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
             "Unsafe Hive identifier 'name string, x int) --': "
-            . 'only letters, digits and underscores are permitted.'
+            .'only letters, digits and underscores are permitted.'
         );
 
         $this->compile(function (HiveBlueprint $table): void {

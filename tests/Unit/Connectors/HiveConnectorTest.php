@@ -14,7 +14,7 @@ final class HiveConnectorTest extends TestCase
     {
         $method = new ReflectionMethod(HiveConnector::class, 'getDsn');
 
-        return $method->invoke(new HiveConnector(), $config);
+        return $method->invoke(new HiveConnector, $config);
     }
 
     public function test_it_prefixes_a_bare_dsn_with_odbc(): void

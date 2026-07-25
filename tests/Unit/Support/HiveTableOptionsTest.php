@@ -12,7 +12,7 @@ final class HiveTableOptionsTest extends TestCase
 {
     public function test_all_options_default_to_null(): void
     {
-        $options = new HiveTableOptions();
+        $options = new HiveTableOptions;
 
         $this->assertNull($options->charset());
         $this->assertNull($options->storedAs());
@@ -22,7 +22,7 @@ final class HiveTableOptionsTest extends TestCase
 
     public function test_setters_are_fluent_and_store_values(): void
     {
-        $options = (new HiveTableOptions())
+        $options = (new HiveTableOptions)
             ->setCharset('UTF-8')
             ->setStoredAs('ORC')
             ->setDelimiter(',')
@@ -36,17 +36,17 @@ final class HiveTableOptionsTest extends TestCase
 
     public function test_it_reports_whether_any_option_is_set(): void
     {
-        $this->assertTrue((new HiveTableOptions())->isEmpty());
-        $this->assertFalse((new HiveTableOptions())->setCharset('UTF-8')->isEmpty());
-        $this->assertFalse((new HiveTableOptions())->setStoredAs('ORC')->isEmpty());
-        $this->assertFalse((new HiveTableOptions())->setDelimiter(',')->isEmpty());
-        $this->assertFalse((new HiveTableOptions())->setLocation('/w')->isEmpty());
+        $this->assertTrue((new HiveTableOptions)->isEmpty());
+        $this->assertFalse((new HiveTableOptions)->setCharset('UTF-8')->isEmpty());
+        $this->assertFalse((new HiveTableOptions)->setStoredAs('ORC')->isEmpty());
+        $this->assertFalse((new HiveTableOptions)->setDelimiter(',')->isEmpty());
+        $this->assertFalse((new HiveTableOptions)->setLocation('/w')->isEmpty());
     }
 
     #[DataProvider('optionClearanceProvider')]
     public function test_setting_an_option_to_null_clears_it(string $setter, string $accessor, string $initialValue): void
     {
-        $options = new HiveTableOptions();
+        $options = new HiveTableOptions;
 
         // Set the option
         $options->$setter($initialValue);

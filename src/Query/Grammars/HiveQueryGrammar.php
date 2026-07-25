@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sukhil\Database\Hive\Query\Grammars;
 
+use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Grammars\Grammar;
@@ -46,7 +47,7 @@ class HiveQueryGrammar extends Grammar
      */
     public function __construct(?Connection $connection = null, ?HiveValueQuoter $quoter = null)
     {
-        $this->quoter = $quoter ?? new HiveValueQuoter();
+        $this->quoter = $quoter ?? new HiveValueQuoter;
 
         if ($connection === null) {
             return;
@@ -88,11 +89,11 @@ class HiveQueryGrammar extends Grammar
 
     /**
      * @param  array<mixed>  $values  always a list of rows: compileInsert()
-     *   normalises a single associative row into a one-element list before
-     *   calling this, so there is no bare-associative-row case to branch on
+     *                                normalises a single associative row into a one-element list before
+     *                                calling this, so there is no bare-associative-row case to branch on
      * @param  array<int, string>  $columnNames  column order from the first
-     *   row, used to keep every row's values aligned to that order even when
-     *   a later row's own keys come in a different order
+     *                                           row, used to keep every row's values aligned to that order even when
+     *                                           a later row's own keys come in a different order
      */
     protected function compileRows(array $values, array $columnNames): string
     {
@@ -111,10 +112,10 @@ class HiveQueryGrammar extends Grammar
     {
         $this->assertColumnsMatch($row, $columnNames, $index);
 
-        return '(' . implode(', ', array_map(
+        return '('.implode(', ', array_map(
             fn (string $column): string => $this->quoter->literal($row[$column]),
             $columnNames
-        )) . ')';
+        )).')';
     }
 
     /**
@@ -141,11 +142,11 @@ class HiveQueryGrammar extends Grammar
         $details = [];
 
         if ($missing !== []) {
-            $details[] = 'missing [' . implode(', ', $missing) . ']';
+            $details[] = 'missing ['.implode(', ', $missing).']';
         }
 
         if ($unexpected !== []) {
-            $details[] = 'unexpected [' . implode(', ', $unexpected) . ']';
+            $details[] = 'unexpected ['.implode(', ', $unexpected).']';
         }
 
         throw new InvalidArgumentException(sprintf(
@@ -177,7 +178,7 @@ class HiveQueryGrammar extends Grammar
      * from the grammar's own tablePrefix property (Laravel 11) nor via
      * parent::wrapTable() (which would apply it a second time on either major).
      *
-     * @param  \Illuminate\Contracts\Database\Query\Expression|string  $table
+     * @param  Expression|string  $table
      * @param  string|null  $prefix
      */
     public function wrapTable($table, $prefix = null): string
@@ -197,14 +198,14 @@ class HiveQueryGrammar extends Grammar
 
             if (is_array($segments) && count($segments) === 2) {
                 return $this->wrapTable($segments[0], $prefix)
-                    . ' as ' . HiveIdentifier::assertSafe($prefix . $segments[1]);
+                    .' as '.HiveIdentifier::assertSafe($prefix.$segments[1]);
             }
         }
 
         if (str_contains($table, '.')) {
             // The prefix belongs to the table, not to the schema that qualifies
             // it, so it is spliced in front of the final segment.
-            $qualified = substr_replace($table, '.' . $prefix, (int) strrpos($table, '.'), 1);
+            $qualified = substr_replace($table, '.'.$prefix, (int) strrpos($table, '.'), 1);
 
             return implode('.', array_map(
                 static fn (string $segment): string => HiveIdentifier::assertSafe($segment),
@@ -212,7 +213,7 @@ class HiveQueryGrammar extends Grammar
             ));
         }
 
-        return HiveIdentifier::assertSafe($prefix . $table);
+        return HiveIdentifier::assertSafe($prefix.$table);
     }
 
     /**

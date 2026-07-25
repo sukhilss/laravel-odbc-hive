@@ -105,9 +105,9 @@ class HiveSchemaGrammar extends Grammar
     ): string {
         $columns = implode(', ', $this->getColumns($blueprint));
 
-        $sql = 'create table ' . $this->wrapTable($blueprint) . " ($columns)";
+        $sql = 'create table '.$this->wrapTable($blueprint)." ($columns)";
 
-        return $sql . $this->compileTableOptions($blueprint);
+        return $sql.$this->compileTableOptions($blueprint);
     }
 
     /**
@@ -127,8 +127,8 @@ class HiveSchemaGrammar extends Grammar
 
         // HiveQL clause order is fixed: ROW FORMAT, then STORED AS, then LOCATION.
         return $this->rowFormatClause($options)
-            . $this->storedAsClause($options)
-            . $this->locationClause($options);
+            .$this->storedAsClause($options)
+            .$this->locationClause($options);
     }
 
     /**
@@ -142,10 +142,10 @@ class HiveSchemaGrammar extends Grammar
     {
         if (($charset = $options->charset()) !== null) {
             return " ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'"
-                . ' WITH SERDEPROPERTIES ('
-                . "'serialization.encoding'='{$charset}', "
-                . "'store.charset'='{$charset}', "
-                . "'retrieve.charset'='{$charset}')";
+                .' WITH SERDEPROPERTIES ('
+                ."'serialization.encoding'='{$charset}', "
+                ."'store.charset'='{$charset}', "
+                ."'retrieve.charset'='{$charset}')";
         }
 
         if (($delimiter = $options->delimiter()) !== null) {
@@ -190,7 +190,7 @@ class HiveSchemaGrammar extends Grammar
      */
     protected function typeVarChar(Fluent $column): string
     {
-        return 'varchar(' . ($column->get('length') ?? 65535) . ')';
+        return 'varchar('.($column->get('length') ?? 65535).')';
     }
 
     protected function typeText(Fluent $column): string
