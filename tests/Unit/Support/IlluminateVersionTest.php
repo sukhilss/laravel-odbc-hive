@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sukhil\Database\Hive\Tests\Unit\Support;
 
+use Illuminate\Database\Connection;
 use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\TestCase;
 use Sukhil\Database\Hive\Support\IlluminateVersion;
@@ -35,4 +36,64 @@ final class IlluminateVersionTest extends TestCase
 
         $this->assertSame($expected, IlluminateVersion::detect()->usesConnectionAwareSchemaApi());
     }
+
+    public function test_forClass_detects_connection_typed_first_parameter(): void
+    {
+        $this->assertTrue(
+            IlluminateVersion::forClass(StubConnectionTyped::class)->usesConnectionAwareSchemaApi()
+        );
+    }
+
+    public function test_forClass_rejects_untyped_first_parameter(): void
+    {
+        $this->assertFalse(
+            IlluminateVersion::forClass(StubUntypedParameter::class)->usesConnectionAwareSchemaApi()
+        );
+    }
+
+    public function test_forClass_rejects_union_type_first_parameter(): void
+    {
+        $this->assertFalse(
+            IlluminateVersion::forClass(StubUnionTyped::class)->usesConnectionAwareSchemaApi()
+        );
+    }
+
+    public function test_forClass_rejects_zero_parameter_constructor(): void
+    {
+        $this->assertFalse(
+            IlluminateVersion::forClass(StubZeroParameters::class)->usesConnectionAwareSchemaApi()
+        );
+    }
+}
+
+/**
+ * Stub: first parameter typed as Connection.
+ */
+class StubConnectionTyped
+{
+    public function __construct(Connection $connection) {}
+}
+
+/**
+ * Stub: first parameter untyped.
+ */
+class StubUntypedParameter
+{
+    public function __construct($table) {}
+}
+
+/**
+ * Stub: first parameter with union type (not Connection alone).
+ */
+class StubUnionTyped
+{
+    public function __construct(Connection|string $param) {}
+}
+
+/**
+ * Stub: constructor with zero parameters.
+ */
+class StubZeroParameters
+{
+    public function __construct() {}
 }

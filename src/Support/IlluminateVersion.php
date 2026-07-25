@@ -25,17 +25,28 @@ final class IlluminateVersion
     }
 
     /**
-     * Probe the installed framework by inspecting Blueprint's constructor.
+     * Probe a class by inspecting its constructor's first parameter type.
+     *
+     * Returns true if the first parameter is typed as Illuminate\Database\Connection.
      */
-    public static function detect(): self
+    public static function forClass(string $class): self
     {
-        $parameters = (new ReflectionMethod(Blueprint::class, '__construct'))->getParameters();
-        $type = $parameters[0]->getType();
+        $parameters = (new ReflectionMethod($class, '__construct'))->getParameters();
+        $firstParameter = $parameters[0] ?? null;
+        $type = $firstParameter?->getType();
 
         return new self(
             $type instanceof ReflectionNamedType
                 && is_a($type->getName(), Connection::class, true),
         );
+    }
+
+    /**
+     * Probe the installed framework by inspecting Blueprint's constructor.
+     */
+    public static function detect(): self
+    {
+        return self::forClass(Blueprint::class);
     }
 
     /**
