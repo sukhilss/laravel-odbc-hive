@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sukhil\Database\Hive\Tests\Unit\Support;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sukhil\Database\Hive\Support\HiveTableOptions;
 
@@ -42,9 +43,7 @@ final class HiveTableOptionsTest extends TestCase
         $this->assertFalse((new HiveTableOptions())->setLocation('/w')->isEmpty());
     }
 
-    /**
-     * @dataProvider optionClearanceProvider
-     */
+    #[DataProvider('optionClearanceProvider')]
     public function test_setting_an_option_to_null_clears_it(string $setter, string $accessor, string $initialValue): void
     {
         $options = new HiveTableOptions();
