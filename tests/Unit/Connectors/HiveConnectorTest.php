@@ -45,4 +45,20 @@ final class HiveConnectorTest extends TestCase
     {
         $this->assertNull($this->dsn(['dsn' => '']));
     }
+
+    public function test_connect_rejects_a_missing_dsn(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Hive DSN');
+
+        (new HiveConnector)->connect(['database' => 'default']);
+    }
+
+    public function test_connect_rejects_an_empty_dsn(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Hive DSN');
+
+        (new HiveConnector)->connect(['dsn' => '', 'database' => 'default']);
+    }
 }

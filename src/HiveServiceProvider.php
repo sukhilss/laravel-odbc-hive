@@ -61,12 +61,4 @@ class HiveServiceProvider extends ServiceProvider
     {
         return __DIR__.'/../config/hive.php';
     }
-
-    /**
-     * @return array<int, string>
-     */
-    public function provides(): array
-    {
-        return ['db.connector.hive'];
-    }
 }

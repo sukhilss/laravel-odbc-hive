@@ -7,6 +7,7 @@ namespace Sukhil\Database\Hive\Connectors;
 use Illuminate\Database\Connectors\Connector;
 use Illuminate\Database\Connectors\ConnectorInterface;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use PDO;
 
 /**
@@ -16,14 +17,21 @@ class HiveConnector extends Connector implements ConnectorInterface
 {
     /**
      * @param  array<string, mixed>  $config
+     *
+     * @throws InvalidArgumentException
      */
     public function connect(array $config): PDO
     {
-        return $this->createConnection(
-            (string) $this->getDsn($config),
-            $config,
-            $this->getOptions($config)
-        );
+        $dsn = $this->getDsn($config);
+
+        if ($dsn === null) {
+            throw new InvalidArgumentException(
+                'Hive DSN is not configured. Set the "dsn" key on the connection '
+                .'(or the HIVE_DSN environment variable) to an ODBC DSN.'
+            );
+        }
+
+        return $this->createConnection($dsn, $config, $this->getOptions($config));
     }
 
     /**

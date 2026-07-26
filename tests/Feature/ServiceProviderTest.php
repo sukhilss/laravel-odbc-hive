@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Sukhil\Database\Hive\Tests\Feature;
 
+use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 use Sukhil\Database\Hive\Connectors\HiveConnector;
 use Sukhil\Database\Hive\HiveConnection;
+use Sukhil\Database\Hive\HiveServiceProvider;
 use Sukhil\Database\Hive\Tests\TestCase;
 
 final class ServiceProviderTest extends TestCase
@@ -58,6 +60,24 @@ final class ServiceProviderTest extends TestCase
         $connection = DB::connection('hive');
 
         $this->assertInstanceOf(HiveConnection::class, $connection);
+    }
+
+    public function test_the_provider_is_not_deferred(): void
+    {
+        // register() registers a connection resolver as a side effect and
+        // boot() merges the package's connections; deferring either would
+        // break connection resolution silently.
+        /** @phpstan-ignore method.alreadyNarrowedType */
+        $this->assertNotInstanceOf(
+            DeferrableProvider::class,
+            new HiveServiceProvider($this->app)
+        );
+
+        $reflection = new \ReflectionClass(HiveServiceProvider::class);
+        $this->assertFalse(
+            $reflection->hasMethod('provides') && $reflection->getMethod('provides')->getDeclaringClass()->getName() === HiveServiceProvider::class,
+            'provides() is only consulted for deferred providers; leaving it invites false confidence.'
+        );
     }
 
     protected function defineEnvironment($app): void
