@@ -48,6 +48,10 @@ class HiveSchemaBuilder extends Builder
      */
     protected function createBlueprint($table, ?Closure $callback = null): HiveBlueprint
     {
+        // Illuminate types $resolver as a non-nullable Closure, so PHPStan
+        // believes it is always set. It is genuinely uninitialised until
+        // blueprintResolver() is called, which is exactly what this guards.
+        /** @phpstan-ignore isset.property */
         if (isset($this->resolver)) {
             // The resolver's argument shape is version-divergent, and this is a
             // documented public extension point — a user's resolver is written
@@ -62,16 +66,27 @@ class HiveSchemaBuilder extends Builder
                 ? $this->connection->getConfig('prefix')
                 : '';
 
-            /** @var HiveBlueprint */
+            // PHPStan reads Illuminate's Laravel 12 resolver signature
+            // ($connection, $table, $callback) from the property docblock. This
+            // branch only runs on Laravel 11, whose Builder calls the resolver
+            // as ($table, $callback, $prefix) — verified against 11.x source.
+            /**
+             * @var HiveBlueprint
+             * @phpstan-ignore argument.type, argument.type
+             */
             return call_user_func($this->resolver, $table, $callback, $prefix);
         }
 
+        // Same root cause as above: PHPStan believes $resolver is always set
+        // (see the isset() guard), so it treats everything past the guard's
+        // `if` block as unreachable. In reality $resolver is frequently unset
+        // and execution falls through to here — verified by
+        // HiveSchemaBuilderTest, which exercises both branches.
+        /** @phpstan-ignore deadCode.unreachable */
         if ($this->illuminateVersion()->usesConnectionAwareSchemaApi()) {
-            /** @phpstan-ignore-next-line Laravel 12 signature */
             return new HiveBlueprint($this->connection, $table, $callback);
         }
 
-        /** @phpstan-ignore-next-line Laravel 11 signature */
         return new HiveBlueprint($table, $callback);
     }
 }
