@@ -1,0 +1,13 @@
+# Files below are development-only and are excluded from the
+# distributed package. Consumers get src/, config/ and the docs.
+/.github            export-ignore
+/docs/superpowers   export-ignore
+/tests              export-ignore
+/tools              export-ignore
+/docker             export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore
+/compose.yaml       export-ignore
+/phpunit.xml        export-ignore
+/phpstan.neon       export-ignore
+/pint.json          export-ignore
