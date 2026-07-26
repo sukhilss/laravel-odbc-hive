@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sukhil\Database\Hive\Schema\Grammars;
 
+use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Grammars\Grammar;
@@ -11,6 +12,7 @@ use Illuminate\Support\Fluent;
 use Sukhil\Database\Hive\Schema\HiveBlueprint;
 use Sukhil\Database\Hive\Support\HiveIdentifier;
 use Sukhil\Database\Hive\Support\HiveTableOptions;
+use Sukhil\Database\Hive\Support\HiveTableWrapper;
 
 /**
  * Compiles schema operations into HiveQL DDL.
@@ -88,9 +90,16 @@ class HiveSchemaGrammar extends Grammar
      * embedded double quote, as this previously did, escaped nothing that Hive
      * would have treated as an escape.
      *
-     * wrapTable() is intentionally NOT overridden: the base implementation
-     * already routes every segment through this method and applies the table
-     * prefix using whichever mechanism the installed major provides.
+     * This stays on assertSafe() rather than the schema-qualified validator
+     * wrapTable() below uses. It doubles as the validator for column names
+     * (via wrap()/wrapSegments(), which always pre-splits a dotted value into
+     * single segments before calling here — so a dot can never actually reach
+     * this method on that path) and for database names (compileCreateDatabase(),
+     * compileDropDatabaseIfExists(), which pass their argument straight through
+     * with no pre-split). A database name can never legitimately contain a
+     * dot, so loosening this method would admit dotted database names for no
+     * benefit — the qualified validator belongs only where a qualified name
+     * can legitimately arrive, which is table names, not this method.
      */
     protected function wrapValue($value): string
     {
@@ -99,6 +108,60 @@ class HiveSchemaGrammar extends Grammar
         }
 
         return HiveIdentifier::assertSafe((string) $value);
+    }
+
+    /**
+     * Emit a table identifier verbatim, after proving it safe.
+     *
+     * Overridden because the inherited implementation reaches the same defect
+     * HiveQueryGrammar::wrapTable() had: Schema Grammar::wrapTable() unwraps a
+     * Blueprint and then the base Grammar concatenates the prefix with the
+     * table name and validates the result as one string via wrapValue() above.
+     * A dotted table prefix ('analytics.') therefore threw on every
+     * CREATE TABLE even though the equivalent query-side statement already
+     * worked. DDL reaches this path directly — compileCreate() calls
+     * wrapTable($blueprint) — so the class-level comment that used to justify
+     * not overriding this method no longer holds once wrapValue() alone
+     * cannot carry both the column/database validator and the table one (see
+     * wrapValue()'s own docblock).
+     *
+     * The alias/schema-qualified/plain algorithm is shared with
+     * HiveQueryGrammar via HiveTableWrapper, so the two grammars validate
+     * identically and can't drift. This method's own job is just to unwrap
+     * what only the schema side can receive (a Blueprint, or in principle an
+     * Expression, since the inherited chain checks for one) and resolve the
+     * prefix, then hand a plain string to the shared helper.
+     *
+     * The `$prefix` parameter is declared optional so this single override is
+     * compatible with both parents: Laravel 11 declares `wrapTable($table)`,
+     * Laravel 12 declares `wrapTable($table, $prefix = null)` — verified
+     * empirically against both installed majors. Omitting it would be an
+     * incompatible declaration on Laravel 12 and fatal at load.
+     *
+     * @param  Blueprint|Expression|string  $table
+     * @param  string|null  $prefix
+     */
+    public function wrapTable($table, $prefix = null): string
+    {
+        if ($table instanceof Blueprint) {
+            $table = $table->getTable();
+        }
+
+        if ($this->isExpression($table)) {
+            return (string) $this->getValue($table);
+        }
+
+        // Illuminate's Grammar declares $connection as a non-nullable
+        // Connection (typed from the Laravel 12 constructor-required shape),
+        // so PHPStan believes it can never be null here. It can: this class's
+        // own __construct() above accepts `?Connection $connection = null`
+        // and returns early without ever assigning $this->connection when no
+        // connection is given. The ?-> and ?? are load-bearing, mirroring
+        // HiveQueryGrammar::wrapTable()'s identical guard.
+        // @phpstan-ignore nullCoalesce.expr, nullsafe.neverNull
+        $prefix ??= $this->connection?->getTablePrefix() ?? '';
+
+        return HiveTableWrapper::wrap((string) $table, $prefix);
     }
 
     /**

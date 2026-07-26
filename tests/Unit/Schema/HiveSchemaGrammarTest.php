@@ -128,6 +128,52 @@ final class HiveSchemaGrammarTest extends TestCase
         $this->assertStringStartsWith('create table sample_table (', $sql[0]);
     }
 
+    public function test_it_accepts_a_dotted_table_prefix(): void
+    {
+        // wrapTable() must validate a dotted prefix per segment, not as one
+        // concatenated string: DB::table('analytics.events') already worked
+        // before this fix, but a *prefix* of 'analytics.' threw on the schema
+        // side because the inherited wrapTable() routed the whole concatenated
+        // string through wrapValue() as a single identifier.
+        $connection = BlueprintFactory::connection();
+        $connection->setTablePrefix('analytics.');
+        $grammar = new HiveSchemaGrammar($connection);
+
+        $this->assertSame('analytics.events', $grammar->wrapTable('events'));
+    }
+
+    public function test_it_rejects_an_empty_table_name_even_with_a_prefix(): void
+    {
+        $connection = BlueprintFactory::connection();
+        $connection->setTablePrefix('pfx_');
+        $grammar = new HiveSchemaGrammar($connection);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $grammar->wrapTable('');
+    }
+
+    public function test_it_creates_a_table_under_a_dotted_prefix(): void
+    {
+        // The bare wrapTable(string) tests above exercise the override
+        // directly; this proves the fix reaches the actual DDL path migrations
+        // use, where compileCreate() calls wrapTable($blueprint), not
+        // wrapTable($string).
+        $connection = BlueprintFactory::connection();
+        $connection->setTablePrefix('analytics.');
+        $grammar = new HiveSchemaGrammar($connection);
+        $connection->setSchemaGrammar($grammar);
+
+        $blueprint = BlueprintFactory::make('events', function (HiveBlueprint $table): void {
+            $table->string('name');
+        }, $grammar);
+        $blueprint->create();
+
+        $sql = BlueprintFactory::toSql($blueprint, $connection, $grammar);
+
+        $this->assertStringStartsWith('create table analytics.events (', $sql[0]);
+    }
+
     public function test_it_rejects_an_unsafe_column_identifier(): void
     {
         // DDL identifiers come from migration source rather than request data,
