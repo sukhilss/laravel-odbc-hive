@@ -35,8 +35,26 @@ final class HiveTableWrapper
             $segments = preg_split('/\s+as\s+/i', $table, 2);
 
             if (is_array($segments) && count($segments) === 2) {
+                // An alias is never schema-qualified: Hive rejects
+                // `as analytics.e` outright. So only the table portion of the
+                // prefix applies to it — a prefix of 'analytics.' contributes
+                // nothing to the alias, while 'pfx_' still contributes 'pfx_'.
+                $aliasPrefix = str_contains($prefix, '.')
+                    ? substr($prefix, (int) strrpos($prefix, '.') + 1)
+                    : $prefix;
+
+                // Checked before concatenation, or a non-empty prefix would
+                // make an empty alias look non-empty and emit a bare `as pfx_`.
+                if ($segments[1] === '') {
+                    throw new InvalidArgumentException(
+                        'Unsafe Hive identifier: the table alias is empty.'
+                    );
+                }
+
+                // assertSafe(), not assertSafeQualified(): an alias is a single
+                // identifier, so a dot inside it is never legitimate.
                 return self::wrap($segments[0], $prefix)
-                    .' as '.HiveIdentifier::assertSafeQualified($prefix.$segments[1]);
+                    .' as '.HiveIdentifier::assertSafe($aliasPrefix.$segments[1]);
             }
         }
 

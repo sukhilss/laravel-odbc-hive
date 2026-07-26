@@ -265,6 +265,71 @@ final class HiveQueryGrammarTest extends TestCase
         $grammar->wrapTable('');
     }
 
+    public function test_it_leaves_an_alias_unqualified_under_a_dotted_prefix(): void
+    {
+        // Hive rejects `as analytics.e`: an alias is a bare identifier, never a
+        // schema-qualified one. Prefixing the alias with the whole 'analytics.'
+        // prefix emitted `analytics.events as analytics.e` — valid-looking but
+        // unparseable — for the two most common aliased calls, from() and
+        // join().
+        $connection = BlueprintFactory::connection();
+        $connection->setTablePrefix('analytics.');
+        $grammar = new HiveQueryGrammar($connection);
+
+        $this->assertSame('analytics.events as e', $grammar->wrapTable('events as e'));
+
+        $query = $this->realQuery($connection)
+            ->from('events as e')
+            ->join('venues as v', 'e.venue_id', '=', 'v.id');
+
+        // Only the table-and-alias clause is asserted. The ON clause's
+        // alias-qualified columns are wrapped by the inherited
+        // Grammar::wrapSegments(), which routes the leading segment of any
+        // dotted column through wrapTable() and so prefixes it — upstream
+        // Laravel does exactly the same (`pfx_e`.`venue_id` on MySQL). That is
+        // a separate, pre-existing quirk of the column path, not of this fix.
+        $this->assertStringStartsWith(
+            'select * from analytics.events as e '
+            .'inner join analytics.venues as v on ',
+            $query->toSql()
+        );
+    }
+
+    public function test_it_still_prefixes_an_alias_under_a_non_dotted_prefix(): void
+    {
+        // Only the schema portion of the prefix is dropped from the alias; a
+        // plain table prefix must still reach it, or `from('events as e')`
+        // aliases to a name the rest of the query does not use.
+        $grammar = new HiveQueryGrammar($this->prefixedConnection());
+
+        $this->assertSame('pfx_events as pfx_e', $grammar->wrapTable('events as e'));
+    }
+
+    public function test_it_rejects_a_schema_qualified_alias(): void
+    {
+        // Validating the alias with the qualified-name validator (needed for the
+        // table) silently widened what an alias may contain.
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            "Unsafe Hive identifier 'a.b': "
+            .'only letters, digits and underscores are permitted.'
+        );
+
+        $this->grammar->wrapTable('events as a.b');
+    }
+
+    public function test_it_rejects_an_empty_alias_even_with_a_prefix(): void
+    {
+        // The emptiness check has to happen before the prefix is concatenated,
+        // or 'pfx_'.'' looks like a perfectly good alias and emits `as pfx_`.
+        $grammar = new HiveQueryGrammar($this->prefixedConnection());
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsafe Hive identifier: the table alias is empty.');
+
+        $grammar->wrapTable('events as ');
+    }
+
     public function test_it_rejects_an_unsafe_identifier_used_as_an_insert_column(): void
     {
         // Array keys are attacker-controlled in ->insert($request->all()). This
