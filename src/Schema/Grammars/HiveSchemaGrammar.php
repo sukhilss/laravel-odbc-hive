@@ -151,9 +151,11 @@ class HiveSchemaGrammar extends Grammar
             return (string) $this->getValue($table);
         }
 
-        // Illuminate's Grammar declares $connection as a non-nullable
-        // Connection (typed from the Laravel 12 constructor-required shape),
-        // so PHPStan believes it can never be null here. It can: this class's
+        // Illuminate's Grammar documents $connection as a non-nullable
+        // Connection in a docblock @var — there is no native type declaration,
+        // which is precisely why ?-> reads an unset property harmlessly instead
+        // of fataling. PHPStan trusts the docblock and believes the property can
+        // never be null here. It can: this class's
         // own __construct() above accepts `?Connection $connection = null`
         // and returns early without ever assigning $this->connection when no
         // connection is given. The ?-> and ?? are load-bearing, mirroring

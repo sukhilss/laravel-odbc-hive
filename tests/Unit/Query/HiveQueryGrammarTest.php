@@ -330,6 +330,16 @@ final class HiveQueryGrammarTest extends TestCase
         $grammar->wrapTable('events as ');
     }
 
+    public function test_it_wraps_a_table_when_constructed_without_a_connection(): void
+    {
+        // wrapTable()'s `$this->connection?->getTablePrefix() ?? ''` carries a
+        // PHPStan suppression whose justification is that $connection can be
+        // null here. That is only true because Illuminate documents the
+        // property rather than natively typing it; pin the behaviour so the
+        // suppression cannot outlive its justification unnoticed.
+        $this->assertSame('events', (new HiveQueryGrammar)->wrapTable('events'));
+    }
+
     public function test_it_rejects_an_unsafe_identifier_used_as_an_insert_column(): void
     {
         // Array keys are attacker-controlled in ->insert($request->all()). This

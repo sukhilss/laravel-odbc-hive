@@ -153,6 +153,16 @@ final class HiveSchemaGrammarTest extends TestCase
         $grammar->wrapTable('');
     }
 
+    public function test_it_wraps_a_table_when_constructed_without_a_connection(): void
+    {
+        // wrapTable()'s `$this->connection?->getTablePrefix() ?? ''` carries a
+        // PHPStan suppression whose justification is that $connection can be
+        // null here. That is only true because Illuminate documents the
+        // property rather than natively typing it; pin the behaviour so the
+        // suppression cannot outlive its justification unnoticed.
+        $this->assertSame('events', (new HiveSchemaGrammar)->wrapTable('events'));
+    }
+
     public function test_it_creates_a_table_under_a_dotted_prefix(): void
     {
         // The bare wrapTable(string) tests above exercise the override
