@@ -61,7 +61,7 @@ jobs:
           coverage: none
 
       - name: Install dependencies
-        run: composer update --prefer-dist --no-interaction
+        run: composer update --prefer-dist --no-interaction --no-blocking
 
       - name: Check formatting
         run: composer lint
@@ -85,7 +85,7 @@ jobs:
           coverage: pcov
 
       - name: Install dependencies
-        run: composer update --prefer-dist --no-interaction
+        run: composer update --prefer-dist --no-interaction --no-blocking
 
       - name: Generate coverage
         run: vendor/bin/phpunit --coverage-clover build/coverage/clover.xml --coverage-html build/coverage/html
