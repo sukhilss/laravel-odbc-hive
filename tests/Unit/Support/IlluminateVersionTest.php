@@ -68,9 +68,16 @@ final class IlluminateVersionTest extends TestCase
 
 /**
  * Stub: first parameter typed as Connection.
+ *
+ * These four stub classes exist purely to give IlluminateVersion::forClass()
+ * known constructor signatures to reflect on; nothing ever calls them, so
+ * their parameters are unused by design, and StubUntypedParameter's
+ * parameter is deliberately left untyped because that absence is exactly
+ * what it is testing.
  */
 class StubConnectionTyped
 {
+    /** @phpstan-ignore constructor.unusedParameter */
     public function __construct(Connection $connection) {}
 }
 
@@ -79,6 +86,7 @@ class StubConnectionTyped
  */
 class StubUntypedParameter
 {
+    /** @phpstan-ignore constructor.unusedParameter, missingType.parameter */
     public function __construct($table) {}
 }
 
@@ -87,6 +95,7 @@ class StubUntypedParameter
  */
 class StubUnionTyped
 {
+    /** @phpstan-ignore constructor.unusedParameter */
     public function __construct(Connection|string $param) {}
 }
 

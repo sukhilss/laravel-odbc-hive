@@ -72,6 +72,7 @@ class HiveSchemaBuilder extends Builder
             // as ($table, $callback, $prefix) — verified against 11.x source.
             /**
              * @var HiveBlueprint
+             *
              * @phpstan-ignore argument.type, argument.type
              */
             return call_user_func($this->resolver, $table, $callback, $prefix);

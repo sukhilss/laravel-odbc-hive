@@ -53,9 +53,18 @@ class HiveQueryGrammar extends Grammar
             return;
         }
 
+        // PHPStan resolves parent::class against whichever Illuminate major is
+        // installed in vendor/, so on Laravel 12 it sees a Grammar that always
+        // declares __construct() and never declares setConnection() — making
+        // both branches below look like dead/impossible code. On Laravel 11
+        // the parent has no constructor and does have setConnection(), so this
+        // branch is genuinely live there. Correct on both majors; wrong only
+        // about the one PHPStan happens to be looking at.
+        // @phpstan-ignore function.alreadyNarrowedType
         if (method_exists(parent::class, '__construct')) {
             parent::__construct($connection);   // Laravel 12
         } else {
+            // @phpstan-ignore method.notFound
             $this->setConnection($connection);  // Laravel 11
         }
     }
@@ -190,6 +199,15 @@ class HiveQueryGrammar extends Grammar
             return (string) $this->getValue($table);
         }
 
+        // Illuminate's Grammar declares $connection as a non-nullable
+        // Connection (typed from the Laravel 12 constructor-required shape),
+        // so PHPStan believes it can never be null here. It can: this class's
+        // own __construct() above accepts `?Connection $connection = null`
+        // and returns early without ever assigning $this->connection when no
+        // connection is given — verified empirically, `new HiveQueryGrammar()`
+        // followed by wrapTable('events') returns 'events' via exactly this
+        // null path. The ?-> and ?? are load-bearing.
+        // @phpstan-ignore nullCoalesce.expr, nullsafe.neverNull
         $prefix ??= $this->connection?->getTablePrefix() ?? '';
         $table = (string) $table;
 

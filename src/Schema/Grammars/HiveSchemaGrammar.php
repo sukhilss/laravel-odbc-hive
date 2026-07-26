@@ -47,9 +47,18 @@ class HiveSchemaGrammar extends Grammar
             return;
         }
 
+        // PHPStan resolves parent::class against whichever Illuminate major is
+        // installed in vendor/, so on Laravel 12 it sees a Grammar that always
+        // declares __construct() and never declares setConnection() — making
+        // both branches below look like dead/impossible code. On Laravel 11
+        // the parent has no constructor and does have setConnection(), so this
+        // branch is genuinely live there. Correct on both majors; wrong only
+        // about the one PHPStan happens to be looking at.
+        // @phpstan-ignore function.alreadyNarrowedType
         if (method_exists(parent::class, '__construct')) {
             parent::__construct($connection);   // Laravel 12
         } else {
+            // @phpstan-ignore method.notFound
             $this->setConnection($connection);  // Laravel 11
         }
     }

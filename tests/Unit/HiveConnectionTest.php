@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sukhil\Database\Hive\Tests\Unit;
 
+use Illuminate\Database\Connection;
 use PDO;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -45,8 +46,12 @@ final class HiveConnectionTest extends TestCase
 
         $this->assertInstanceOf(HiveSchemaBuilder::class, $builder);
 
+        // getSchemaBuilder() above already forced a default schema grammar to
+        // be set when none existed, so by this point getSchemaGrammar() is
+        // guaranteed non-null in this test's own call order (not merely by
+        // Illuminate's non-nullable @var docblock, which PHPStan is reading).
+        // An assertNotNull() here would be redundant, not a safety check.
         $grammar = $connection->getSchemaGrammar();
-        $this->assertNotNull($grammar);
 
         $property = new ReflectionProperty($grammar, 'connection');
         $this->assertSame($connection, $property->getValue($grammar));
@@ -70,7 +75,11 @@ final class HiveConnectionTest extends TestCase
         $connection = new HiveConnection(new PDO('sqlite::memory:'));
         $result = null;
 
-        $connection->pretend(function (HiveConnection $connection) use (&$result): void {
+        // Connection::pretend() types its callback as Closure(Connection): mixed;
+        // narrowing the parameter to HiveConnection here would violate
+        // contravariance even though the value passed in is always a
+        // HiveConnection at runtime.
+        $connection->pretend(function (Connection $connection) use (&$result): void {
             $result = $connection->statement('CREATE TABLE t (id INTEGER)');
         });
 

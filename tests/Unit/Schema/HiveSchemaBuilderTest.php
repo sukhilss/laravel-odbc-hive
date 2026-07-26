@@ -65,6 +65,13 @@ final class HiveSchemaBuilderTest extends TestCase
                 return $sentinel;
             });
         } else {
+            // blueprintResolver()'s parameter type comes from whichever
+            // Illuminate is actually installed. This branch deliberately
+            // registers the Laravel 11 resolver shape (string, Closure|null,
+            // string) to exercise it, which only type-checks against the
+            // Laravel 11 signature — PHPStan reports a mismatch when the
+            // installed version (and therefore its inferred signature) is 12.
+            /** @phpstan-ignore argument.type */
             $builder->blueprintResolver(function (string $table, ?Closure $callback, string $prefix) use ($sentinel): HiveBlueprint {
                 $this->assertSame('other_table', $table);
                 $this->assertNull($callback);
@@ -94,11 +101,19 @@ final class HiveSchemaBuilderTest extends TestCase
         // Track which resolver signature path is taken by using a resolver
         // that accepts Laravel 11 signature (3 params with prefix string)
         $callCount = 0;
+        // Same Laravel-11-resolver-shape mismatch as above: this closure is
+        // registered specifically to exercise the Laravel 11 branch
+        // (forced via setIlluminateVersion()), independent of which
+        // signature the actually-installed Illuminate declares.
+        /** @phpstan-ignore argument.type */
         $builder->blueprintResolver(function ($table, ?Closure $callback, string $prefix) use (&$callCount, $sentinel): HiveBlueprint {
             $callCount++;
             $this->assertSame('other_table', $table);
             $this->assertNull($callback);
-            $this->assertIsString($prefix);
+            // $prefix is already declared `string` on this closure, and
+            // declare(strict_types=1) means PHP would have thrown a
+            // TypeError before this line if it weren't — assertIsString()
+            // here would just restate the type declaration, not test it.
 
             return $sentinel;
         });

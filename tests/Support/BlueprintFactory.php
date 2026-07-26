@@ -31,7 +31,6 @@ final class BlueprintFactory
         ?SchemaGrammar $schemaGrammar = null,
     ): HiveBlueprint {
         if (IlluminateVersion::detect()->usesConnectionAwareSchemaApi()) {
-            /** @phpstan-ignore-next-line Laravel 12 signature */
             return new HiveBlueprint(self::connection($schemaGrammar), $table, $callback);
         }
 
@@ -66,7 +65,6 @@ final class BlueprintFactory
         SchemaGrammar $grammar,
     ): array {
         if (IlluminateVersion::detect()->usesConnectionAwareSchemaApi()) {
-            /** @phpstan-ignore-next-line Laravel 12 signature */
             return $blueprint->toSql();
         }
 

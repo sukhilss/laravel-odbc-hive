@@ -10,6 +10,9 @@ use Sukhil\Database\Hive\Connectors\HiveConnector;
 
 final class HiveConnectorTest extends TestCase
 {
+    /**
+     * @param  array<string, mixed>  $config
+     */
     private function dsn(array $config): ?string
     {
         $method = new ReflectionMethod(HiveConnector::class, 'getDsn');
