@@ -75,4 +75,56 @@ final class HiveIdentifierTest extends TestCase
 
         HiveIdentifier::assertSafe('name) values (@@x --');
     }
+
+    public function test_assert_safe_qualified_accepts_a_dotted_name(): void
+    {
+        $this->assertSame(
+            'analytics.events',
+            HiveIdentifier::assertSafeQualified('analytics.events')
+        );
+    }
+
+    public function test_assert_safe_qualified_accepts_a_plain_name(): void
+    {
+        $this->assertSame('events', HiveIdentifier::assertSafeQualified('events'));
+    }
+
+    public function test_assert_safe_qualified_rejects_an_unsafe_segment(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("'ev ents'");
+
+        HiveIdentifier::assertSafeQualified('analytics.ev ents');
+    }
+
+    public function test_assert_safe_qualified_rejects_an_empty_segment(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        HiveIdentifier::assertSafeQualified('analytics..events');
+    }
+
+    public function test_assert_safe_qualified_rejects_an_empty_string(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        HiveIdentifier::assertSafeQualified('');
+    }
+
+    public function test_assert_safe_qualified_rejects_a_leading_dot(): void
+    {
+        // A leading dot produces an empty first segment via explode('.', ...),
+        // which must not be silently skipped or treated as a root-qualified name.
+        $this->expectException(InvalidArgumentException::class);
+
+        HiveIdentifier::assertSafeQualified('.events');
+    }
+
+    public function test_assert_safe_qualified_rejects_a_trailing_dot(): void
+    {
+        // Symmetric case: an empty final segment must also be rejected.
+        $this->expectException(InvalidArgumentException::class);
+
+        HiveIdentifier::assertSafeQualified('events.');
+    }
 }

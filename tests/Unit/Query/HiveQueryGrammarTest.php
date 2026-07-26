@@ -245,6 +245,26 @@ final class HiveQueryGrammarTest extends TestCase
         $this->assertSame('select * from analytics.pfx_events', $query->toSql());
     }
 
+    public function test_it_accepts_a_dotted_table_prefix(): void
+    {
+        $connection = BlueprintFactory::connection();
+        $connection->setTablePrefix('analytics.');
+        $grammar = new HiveQueryGrammar($connection);
+
+        $this->assertSame('analytics.events', $grammar->wrapTable('events'));
+    }
+
+    public function test_it_rejects_an_empty_table_name_even_with_a_prefix(): void
+    {
+        $connection = BlueprintFactory::connection();
+        $connection->setTablePrefix('pfx_');
+        $grammar = new HiveQueryGrammar($connection);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $grammar->wrapTable('');
+    }
+
     public function test_it_rejects_an_unsafe_identifier_used_as_an_insert_column(): void
     {
         // Array keys are attacker-controlled in ->insert($request->all()). This

@@ -216,7 +216,7 @@ class HiveQueryGrammar extends Grammar
 
             if (is_array($segments) && count($segments) === 2) {
                 return $this->wrapTable($segments[0], $prefix)
-                    .' as '.HiveIdentifier::assertSafe($prefix.$segments[1]);
+                    .' as '.HiveIdentifier::assertSafeQualified($prefix.$segments[1]);
             }
         }
 
@@ -225,13 +225,16 @@ class HiveQueryGrammar extends Grammar
             // it, so it is spliced in front of the final segment.
             $qualified = substr_replace($table, '.'.$prefix, (int) strrpos($table, '.'), 1);
 
-            return implode('.', array_map(
-                static fn (string $segment): string => HiveIdentifier::assertSafe($segment),
-                explode('.', $qualified)
-            ));
+            return HiveIdentifier::assertSafeQualified($qualified);
         }
 
-        return HiveIdentifier::assertSafe($prefix.$table);
+        if ($table === '') {
+            throw new InvalidArgumentException(
+                'Unsafe Hive identifier: the table name is empty.'
+            );
+        }
+
+        return HiveIdentifier::assertSafeQualified($prefix.$table);
     }
 
     /**

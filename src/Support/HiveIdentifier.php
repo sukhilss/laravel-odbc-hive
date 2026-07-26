@@ -53,4 +53,30 @@ final class HiveIdentifier
 
         return $value;
     }
+
+    /**
+     * Validate a possibly schema-qualified name, one dot-separated segment at
+     * a time.
+     *
+     * A dot is legal *between* Hive identifiers but not *within* one, so
+     * `analytics.events` is fine while `ev ents` is not. Validating the whole
+     * string with assertSafe() would reject every qualified name — and, once a
+     * dotted table prefix is configured, every table.
+     *
+     * @throws InvalidArgumentException
+     */
+    public static function assertSafeQualified(string $value): string
+    {
+        if ($value === '') {
+            throw new InvalidArgumentException(
+                'Unsafe Hive identifier: the name is empty.'
+            );
+        }
+
+        foreach (explode('.', $value) as $segment) {
+            self::assertSafe($segment);
+        }
+
+        return $value;
+    }
 }
