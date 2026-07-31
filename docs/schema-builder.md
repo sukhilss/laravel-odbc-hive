@@ -67,8 +67,27 @@ charset($charset): self
 hiveOptions(): HiveTableOptions
 ```
 
-- **`storedAs(string $format)`** — sets the storage format, e.g.
-  `storedAs('ORC')`, emitted as `STORED AS ORC`.
+- **`storedAs(string $format)`** — sets the storage format. **Only the exact
+  string `'ORC'` produces a `STORED AS` clause.** The grammar checks the
+  value with a case-sensitive `===` comparison against the literal `'ORC'`
+  (`HiveSchemaGrammar::storedAsClause()`); any other value — a different
+  format such as `'PARQUET'` or `'AVRO'`, or even a case variant like
+  `'orc'` — is silently discarded, with no exception and nothing in the
+  compiled SQL to indicate a value was dropped. Verified directly:
+
+  ```php
+  $table->storedAs('ORC');      // create table t (n string) STORED AS ORC
+  $table->storedAs('PARQUET');  // create table t (n string)   -- silently dropped
+  $table->storedAs('orc');      // create table t (n string)   -- silently dropped (case mismatch)
+  ```
+
+  This is a real defect, not a documented restriction — the method's
+  signature (`string $format`) gives no indication that only one literal
+  value is honoured. See "`storedAs()` accepts any string but only `'ORC'`
+  is honoured" in [`limitations.md`](limitations.md) for the full set of
+  values tested and the exact grammar line responsible. Until that is
+  fixed, treat `storedAs('ORC')` as the only supported call — anything else
+  compiles silently to a plain Hive table with no storage format set.
 - **`location(string $path)`** — sets the HDFS location backing the table,
   emitted as `LOCATION '...'`.
 - **`delimiter(string $delimiter)`** — sets the field delimiter, emitted as

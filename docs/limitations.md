@@ -104,6 +104,50 @@ There is no trace of `TERMINATED BY ','` anywhere in the output. If you
 need a delimiter-based row format, do not also call `charset()` on the
 same blueprint.
 
+## `storedAs()` accepts any string but only `'ORC'` is honoured
+
+`HiveBlueprint::storedAs(string $format)` takes an arbitrary string and
+gives no indication in its signature that only one exact value does
+anything. `HiveSchemaGrammar::storedAsClause()` is the reason:
+
+```php
+return $options->storedAs() === 'ORC' ? ' STORED AS ORC' : '';
+```
+
+A strict (`===`) comparison against the single literal `'ORC'`. Anything
+that isn't identical to that string — a different, equally valid Hive
+storage format, or `'ORC'` spelled with different casing — produces no
+`STORED AS` clause at all, with no exception and no warning. Demonstrated
+directly, running the same blueprint through the grammar with five
+different `storedAs()` values:
+
+```
+storedAs("ORC")        -> create table t (n string) STORED AS ORC
+storedAs("PARQUET")    -> create table t (n string)
+storedAs("AVRO")       -> create table t (n string)
+storedAs("orc")        -> create table t (n string)
+storedAs("TEXTFILE")   -> create table t (n string)
+```
+
+Only the first line — the exact, uppercase string `'ORC'` — produces a
+`STORED AS` clause. `'PARQUET'` and `'AVRO'` are both real, commonly used
+Hive storage formats, and neither is honoured: the resulting table is
+created with no storage format specified at all, and nothing about the
+call or its output says so. The fourth line is the sharpest edge — `'orc'`
+is the *same format*, differently cased, and it is dropped exactly like an
+unsupported format would be. A caller who writes `->storedAs('orc')`
+because they happened to lowercase it gets a plain table and no signal
+that anything was lost.
+
+This was inherited unchanged from the pre-port v6 code (`$blueprint->format
+== 'ORC'`, a loose comparison with the same single-literal check) and
+was not caught during this fork's port, or during two earlier phases of
+this documentation effort — a schema-builder example using `storedAs('ORC')`
+exclusively will never expose it, since that is the one value the check
+accepts. If your table needs a storage format other than ORC, do not rely
+on `storedAs()` to set it; issue the `CREATE TABLE` yourself via
+`DB::statement()` instead.
+
 ## Schema support is CREATE-only
 
 `HiveSchemaGrammar` implements `compileCreate()` and the column `type*()`
