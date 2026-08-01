@@ -19,7 +19,7 @@ A clear description of what's wrong and what you expected instead.
 
 The ODBC driver matters here more than it would for most packages: this
 package cannot be tested against a real Hive server by its maintainer (see
-[`docs/limitations.md`](../../docs/limitations.md)), so knowing exactly which
+[`docs/limitations.md`](docs/limitations.md)), so knowing exactly which
 driver and version you're connecting through is often the difference between
 "this is a bug in the package" and "this is how that driver behaves."
 
