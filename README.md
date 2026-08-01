@@ -37,6 +37,15 @@ driver fits in (and how to develop against this repository without one).
 composer require sukhilss/laravel-odbc-hive
 ```
 
+**v7.0.0 is not yet tagged/published**, so the command above currently
+resolves to v6.0.4 (Laravel 6, PHP 7.2+) — not what this document
+describes. Until the tag lands, install the v7 code from this branch
+instead, and switch to `^7.0` once it's released:
+
+```bash
+composer require sukhilss/laravel-odbc-hive:dev-feature/v7-laravel-11-12-port
+```
+
 Laravel's package auto-discovery picks up `HiveServiceProvider`
 automatically (`composer.json`'s `extra.laravel.providers`) — no manual
 registration needed. As soon as you set `HIVE_DSN` (below), `DB::connection('hive')`
