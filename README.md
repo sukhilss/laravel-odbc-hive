@@ -171,13 +171,16 @@ Bug reports and pull requests are welcome. See
 [`docs/local-development.md`](docs/local-development.md) for how to build,
 test, and lint this package before submitting a PR — the full local gate is
 `composer test && composer lint && composer analyse`, all run through
-`docker compose run --rm php`.
+`docker compose run --rm php`. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for
+the full guidelines, and the [Code of Conduct](CODE_OF_CONDUCT.md) that
+applies to all project spaces.
 
 ## Security
 
 If you find a security issue, please report it privately (via GitHub's
 security advisory feature on this repository) rather than opening a public
-issue.
+issue. See [`SECURITY.md`](SECURITY.md) for the full policy, including how
+to report by email.
 
 ## License
 
