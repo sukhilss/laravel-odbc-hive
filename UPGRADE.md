@@ -116,18 +116,43 @@ them fails at load time (class not found), not silently.
 
 ## 7. Identifiers must now match `[A-Za-z0-9_]`
 
-v6 emitted table, column, and database identifiers **verbatim** — whatever
-string you gave it went straight into the generated SQL, unescaped and
-unvalidated. v7 validates every identifier (`Sukhil\Database\Hive\Support\HiveIdentifier`)
-against `/^[A-Za-z0-9_]+\z/` per dot-separated segment before emitting it,
-and throws `InvalidArgumentException` for anything that doesn't match.
+v6's exposure here was narrower than "everything was raw." Checked directly
+against the pre-port source (tag `v6.0.4`, commit `ea23f65`):
+
+- **Table identifiers were emitted verbatim** in both grammars — the query
+  grammar's `wrapTable()` did `return $table;` and the schema grammar's did
+  `(string) $table`, with no quoting or validation at all. A table name
+  built from unvalidated input reached the generated SQL unchanged. This
+  was a real exposure wherever a table name could come from outside your
+  own code.
+- **Schema-side (DDL) column identifiers were effectively unquoted too** —
+  the schema grammar's `wrapValue()` doubled embedded double quotes
+  (`str_replace('"', '""', $value)`) but supplied no surrounding quote
+  characters for that doubling to close into, so the escaping had nothing
+  to protect.
+- **Query-side column identifiers, by contrast, were already quoted and
+  escaped** — this path had no override and inherited the base Illuminate
+  grammar's `"name"`-style double-quote wrapping with `"`-doubling
+  unchanged. This path was not raw in v6.
+
+(A brief regression on the query-side column path — an in-development
+rewrite of the query grammar that dropped the inherited quoting entirely —
+was introduced and fixed within this port's own commit history before
+v7.0.0 shipped; it never reached a release. See commits `bddcf8a` and its
+fix `1a06929` if you want the detail.)
+
+v7 replaces all of the above — table identifiers in both grammars, and
+every column and alias identifier — with one validator
+(`Sukhil\Database\Hive\Support\HiveIdentifier`): every identifier is now
+checked against `/^[A-Za-z0-9_]+\z/` per dot-separated segment and throws
+`InvalidArgumentException` for anything that doesn't match, rather than
+being quoted (the previously-safe query-side column path) or passed
+through unchanged (everywhere else).
 
 If your schema uses table or column names with hyphens, spaces, or other
 punctuation, migrations and queries that reference them will now throw
-where they previously (silently, and unsafely) worked. This is a deliberate
-security fix, not a relaxable option: v6's verbatim emission meant an
-array key from something like `$request->all()` used as an insert or select
-column could inject arbitrary SQL. There is no configuration flag to
+where they previously worked — worked safely, for query-side column names,
+and worked unsafely for table names. There is no configuration flag to
 restore the old behaviour.
 
 This is a character-class check only, not a reserved-word check — a name

@@ -16,10 +16,14 @@ first — several changes are not source-compatible.
 ### Added
 
 - Identifier validation (`Sukhil\Database\Hive\Support\HiveIdentifier`) on
-  the insert and query paths: table, column, and alias identifiers are now
-  checked against `[A-Za-z0-9_]` per dot-separated segment before being
-  emitted, closing a SQL-injection path where an array key (e.g. from
-  `$request->all()`) previously went straight into the generated SQL.
+  the insert, query, and schema paths: table, column, and alias identifiers
+  are now checked against `[A-Za-z0-9_]` per dot-separated segment and
+  rejected with `InvalidArgumentException` if they don't match. This closes
+  a real exposure in v6: both grammars' `wrapTable()` emitted table
+  identifiers verbatim, and the schema grammar's column-identifier escaping
+  had no surrounding delimiter to escape into. v6's query-side column
+  identifiers were already quoted and escaped by the inherited base
+  Illuminate grammar. See `UPGRADE.md` item 7 for the full history.
 - Support for schema-qualified table names (`analytics.events`) and dotted
   table prefixes (`'analytics.'`) on both the query and schema grammars,
   including correct handling of aliased and joined tables under a dotted
@@ -85,9 +89,16 @@ first — several changes are not source-compatible.
   (e.g. `CREATE TABLE`) as a failure. `PDO::exec()` returns `int(0)`, not
   `false`, for a successful statement affecting no rows; the previous
   `(bool)` cast turned that `0` into `false`.
-- Identifiers are now validated rather than emitted raw — see "Added"
-  above; listed again here because it is also a correctness fix for
-  malformed SQL, not only a security fix.
+- Table identifiers, and schema-side (DDL) column identifiers, are now
+  validated rather than emitted with no effective escaping — see "Added"
+  above. Listed again here because, alongside the injection defence, this
+  is also a correctness fix: an unrecognised identifier now throws instead
+  of silently producing malformed SQL.
+- `HiveConnector::connect()` now throws `InvalidArgumentException` (`Hive
+  DSN is not configured. Set the "dsn" key on the connection (or the
+  HIVE_DSN environment variable) to an ODBC DSN.`) when the `dsn` config
+  key is missing or empty, rather than passing an empty/missing DSN through
+  to PDO and surfacing an opaque driver-level error.
 
 ### Removed
 
