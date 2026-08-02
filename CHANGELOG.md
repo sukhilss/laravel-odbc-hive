@@ -7,10 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [7.0.0] - unreleased
-
-Not yet tagged or published; the release date replaces `unreleased` above
-when the tag lands.
+## [7.0.0] - 2026-08-02
 
 A full rewrite for Laravel 11/12 and PHP 8.2+, ported from the Laravel 6 /
 PHP 7.2 codebase. If you are upgrading from v6, read [`UPGRADE.md`](UPGRADE.md)

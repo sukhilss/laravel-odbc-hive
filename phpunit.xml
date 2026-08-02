@@ -17,7 +17,15 @@
             <directory>tests/Feature</directory>
         </testsuite>
     </testsuites>
-    <source>
+    <!--
+        ignoreIndirectDeprecations limits failOnDeprecation to deprecations
+        raised inside src/. Without it, PHP 8.4 fails the build on implicit-
+        nullable deprecations in dependencies that predate 8.4 (phpdotenv,
+        voku/portable-ascii, guzzle, symfony, mockery, psysh) — 18 of them on
+        the PHP 8.4 x Laravel 11 x prefer-lowest matrix leg, none fixable here.
+        Deprecations in this package's own code still fail the build.
+    -->
+    <source ignoreIndirectDeprecations="true">
         <include>
             <directory>src</directory>
         </include>
