@@ -1,73 +1,64 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sukhil\Database\Hive;
 
+use Illuminate\Database\Connection;
 use Illuminate\Support\ServiceProvider;
 use Sukhil\Database\Hive\Connectors\HiveConnector;
 
 /**
- * Class HiveServiceProvider
- * @package Sukhil\Database\Hive
+ * Registers the Hive database driver with Laravel.
  */
 class HiveServiceProvider extends ServiceProvider
 {
-    /**
-     * Bootstrap the application events.
-     *
-     * @return void
-     */
-    public function boot()
+    public function register(): void
     {
-        $configPath = __DIR__ . '/config/hive.php';
-        $this->publishes([$configPath => $this->getConfigPath()], 'config');
+        $this->mergeConfigFrom($this->configPath(), 'hive');
+
+        // ConnectionFactory::createConnector() resolves this binding by name.
+        $this->app->bind('db.connector.hive', HiveConnector::class);
+
+        // ConnectionFactory::createConnection() consults registered resolvers first.
+        Connection::resolverFor(
+            'hive',
+            fn ($pdo, $database, $prefix, $config): HiveConnection => new HiveConnection($pdo, $database, $prefix, $config)
+        );
+    }
+
+    public function boot(): void
+    {
+        $this->publishes([$this->configPath() => config_path('hive.php')], 'hive-config');
+
+        $this->registerPackageConnections();
     }
 
     /**
-     * Register the service provider.
+     * Expose the package's own connection definitions to the database manager.
      *
-     * @return void
+     * Application-level config wins: connections already defined in
+     * database.connections are left untouched. Runs in boot() because the
+     * database manager resolves connections lazily, well after boot.
      */
-    public function register()
+    protected function registerPackageConnections(): void
     {
-        // Get current database configurations
-        $conns = is_array(config('hive.connections')) ? config('hive.connections') : [];
+        $packageConnections = config('hive.connections');
 
-        // Add hive database configurations to the default set of configurations
-        config(['database.connections' => array_merge($conns, config('database.connections'))]);
-
-        // Extend the connections for hive driver
-        foreach (config('database.connections') as $conn => $config) {
-            if (empty($config['driver']) || $config['driver'] != 'hive') {
-                continue;
-            }
-
-            // Create a connector for hive
-            $this->app['db']->extend($conn, function ($config, $name) {
-                $config['name'] = $name;
-                $connector = new HiveConnector();
-                $hiveConnection = $connector->connect($config);
-                return new HiveConnection($hiveConnection, $config["database"], $config["prefix"], $config);
-            });
+        if (! is_array($packageConnections)) {
+            return;
         }
+
+        config([
+            'database.connections' => array_merge(
+                $packageConnections,
+                (array) config('database.connections', [])
+            ),
+        ]);
     }
 
-    /**
-     * Get the config path
-     *
-     * @return string
-     */
-    protected function getConfigPath()
+    protected function configPath(): string
     {
-        return config_path('hive.php');
-    }
-
-    /**
-     * Get the services provided by the provider.
-     *
-     * @return array
-     */
-    public function provides()
-    {
-        return [];
+        return __DIR__.'/../config/hive.php';
     }
 }

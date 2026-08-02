@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+         failOnWarning="true"
+         failOnRisky="true"
+         failOnDeprecation="true"
+         failOnNotice="true"
+         failOnPhpunitDeprecation="true">
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <!--
+        ignoreIndirectDeprecations limits failOnDeprecation to deprecations
+        raised inside src/. Without it, PHP 8.4 fails the build on implicit-
+        nullable deprecations in dependencies that predate 8.4 (phpdotenv,
+        voku/portable-ascii, guzzle, symfony, mockery, psysh) — 18 of them on
+        the PHP 8.4 x Laravel 11 x prefer-lowest matrix leg, none fixable here.
+        Deprecations in this package's own code still fail the build.
+    -->
+    <source ignoreIndirectDeprecations="true">
+        <include>
+            <directory>src</directory>
+        </include>
+    </source>
+</phpunit>

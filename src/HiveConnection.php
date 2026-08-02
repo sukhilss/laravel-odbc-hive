@@ -1,88 +1,111 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sukhil\Database\Hive;
 
 use Illuminate\Database\Connection;
-use PDO;
-use Sukhil\Database\Hive\Query\Grammars\HiveGrammar as QueryGrammar;
+use Sukhil\Database\Hive\Query\Grammars\HiveQueryGrammar;
 use Sukhil\Database\Hive\Query\Processors\HiveProcessor;
-use Sukhil\Database\Hive\Schema\Builder;
-use Sukhil\Database\Hive\Schema\Grammars\HiveGrammar as SchemaGrammar;
+use Sukhil\Database\Hive\Schema\Grammars\HiveSchemaGrammar;
+use Sukhil\Database\Hive\Schema\HiveSchemaBuilder;
+use Sukhil\Database\Hive\Support\IlluminateVersion;
 
 /**
- * Class HiveConnection
- * @package Sukhil\Database\Hive
+ * A Laravel database connection backed by Apache Hive over ODBC.
+ *
+ * Declares no constructor: the parent accepts \PDO|(\Closure(): \PDO), and
+ * narrowing that in a child both violates contravariance and breaks lazy
+ * connections.
+ *
+ * `configureGrammar()` is one of exactly FOUR sites in src/ permitted to branch
+ * on the installed Laravel version; the others are
+ * HiveSchemaBuilder::createBlueprint(), HiveQueryGrammar::__construct() and
+ * HiveSchemaGrammar::__construct(). Two detection mechanisms are in use: this
+ * site and the schema builder ask IlluminateVersion::usesConnectionAwareSchemaApi();
+ * the two grammar constructors ask method_exists(parent::class, '__construct')
+ * instead, because they must decide how to initialise their own parent before
+ * that parent has been initialised, and the fact they need is specifically
+ * whether their parent declares a constructor. IlluminateVersion holds the
+ * authoritative note, including why one boolean stands in for six divergences.
  */
 class HiveConnection extends Connection
 {
-    /**
-     * HiveConnection constructor.
-     * @param PDO $pdo
-     * @param string $database
-     * @param string $tablePrefix
-     * @param array $config
-     */
-    public function __construct(PDO $pdo, $database = '', $tablePrefix = '', array $config = [])
+    private ?IlluminateVersion $illuminateVersion = null;
+
+    protected function illuminateVersion(): IlluminateVersion
     {
-        parent::__construct($pdo, $database, $tablePrefix, $config);
+        return $this->illuminateVersion ??= IlluminateVersion::detect();
     }
 
-    /**
-     * Get a schema builder instance for the connection.
-     * @return Builder
-     */
-    public function getSchemaBuilder()
+    public function getSchemaBuilder(): HiveSchemaBuilder
     {
-        if (is_null($this->schemaGrammar)) {
+        if ($this->schemaGrammar === null) {
             $this->useDefaultSchemaGrammar();
         }
 
-        return new Builder($this);
+        return new HiveSchemaBuilder($this);
     }
 
-    /**
-     * get default query grammer
-     * @return mixed
-     */
-    protected function getDefaultQueryGrammar()
+    protected function getDefaultQueryGrammar(): HiveQueryGrammar
     {
-        return $this->withTablePrefix(new QueryGrammar);
+        return $this->configureGrammar(new HiveQueryGrammar($this));
     }
 
-    /**
-     * Default grammar for specified Schema
-     * @return mixed
-     */
-    protected function getDefaultSchemaGrammar()
+    protected function getDefaultSchemaGrammar(): HiveSchemaGrammar
     {
-        return $this->withTablePrefix(new SchemaGrammar);
+        return $this->configureGrammar(new HiveSchemaGrammar($this));
     }
 
-    /**
-     * Get the default post processor instance.
-     * @return \Illuminate\Database\Query\Processors\Processor|HiveProcessor
-     */
-    protected function getDefaultPostProcessor()
+    protected function getDefaultPostProcessor(): HiveProcessor
     {
         return new HiveProcessor;
     }
 
     /**
-     * Execute an SQL statement and return the boolean result.
+     * Apply the table prefix using whichever mechanism this Laravel provides.
      *
-     * @param string $query
-     * @param array $bindings
-     * @return bool|mixed
+     * On Laravel 12 the grammar derives the prefix from the connection it was
+     * constructed with, so there is nothing further to do. On Laravel 11 the
+     * prefix is a separate property, set via the connection's withTablePrefix().
+     *
+     * @template TGrammar of object
+     *
+     * @param  TGrammar  $grammar
+     * @return TGrammar
      */
-    public function statement($query, $bindings = [])
+    protected function configureGrammar(object $grammar): object
     {
-        return $this->run($query, $bindings, function ($query, $bindings) {
+        if ($this->illuminateVersion()->usesConnectionAwareSchemaApi()) {
+            return $grammar;
+        }
+
+        /** @phpstan-ignore-next-line withTablePrefix exists only on Laravel 11 */
+        return $this->withTablePrefix($grammar);
+    }
+
+    /**
+     * Execute an SQL statement and return its result.
+     *
+     * Uses PDO::exec rather than prepare: the Hive ODBC driver does not support
+     * prepared DDL statements.
+     *
+     * PDO::exec() returns the number of affected rows on success (0 for a DDL
+     * statement such as CREATE TABLE, which affects none) or false on failure.
+     * The result is therefore compared against false explicitly rather than
+     * cast with (bool) — an unconditional cast would turn a successful
+     * zero-row DDL statement into a false, misreporting it as a failure.
+     *
+     * @param  array<mixed>  $bindings
+     */
+    public function statement($query, $bindings = []): bool
+    {
+        return $this->run($query, $bindings, function (string $query): bool {
             if ($this->pretending()) {
                 return true;
             }
 
-            return $this->getPdo()->exec($query);
+            return $this->getPdo()->exec($query) !== false;
         });
     }
-
 }

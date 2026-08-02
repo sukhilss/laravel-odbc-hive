@@ -1,61 +1,189 @@
 # laravel-odbc-hive
-laravel-odbc-hive is a simple hive service provider for Laravel.
-It provides hive Connection by extending the Illuminate Database component of the laravel framework.
 
----
+Apache Hive database driver for Laravel, over ODBC/PDO. Registers a `hive`
+connection you can use alongside your application's default database —
+query it with the standard query builder or Eloquent, and create tables
+with a Hive-specific `Schema` builder.
 
-- [Installation](#installation)
-- [Configuration](#configuration)
+[![CI](https://github.com/sukhilss/laravel-odbc-hive/actions/workflows/ci.yml/badge.svg)](https://github.com/sukhilss/laravel-odbc-hive/actions/workflows/ci.yml)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/sukhilss/laravel-odbc-hive.svg)](https://packagist.org/packages/sukhilss/laravel-odbc-hive)
+[![Total Downloads](https://img.shields.io/packagist/dt/sukhilss/laravel-odbc-hive.svg)](https://packagist.org/packages/sukhilss/laravel-odbc-hive)
+[![License](https://img.shields.io/packagist/l/sukhilss/laravel-odbc-hive.svg)](LICENSE.md)
+
+## Requirements
+
+| Package | Laravel | PHP |
+|---|---|---|
+| v7.x (this branch) | 11.x, 12.x | 8.2+ |
+| v6.x | 6.x | 7.2+ |
+
+If you're on Laravel 6, stay on `^6.0` of this package — see the
+[`v6.0.4` tag](https://github.com/sukhilss/laravel-odbc-hive/tree/v6.0.4).
+Note that v6.x is **end of life**: [`SECURITY.md`](SECURITY.md) states that
+security reports against v6.x will not receive a patched release, so treat
+`^6.0` as a place to sit while you upgrade, not a supported version.
+Everything below documents v7.
+
+## What you need that this package does not provide
+
+**A Hive ODBC driver.** This package talks to Hive over `PDO_ODBC`, which
+needs an ODBC driver installed on the machine running your application —
+Cloudera's, the one most commonly used in practice, is **proprietary** and
+cannot be bundled with this package or installed via Composer. Installing
+this package alone will not get you a working connection. See
+[`docs/local-development.md`](docs/local-development.md) for how the
+driver fits in (and how to develop against this repository without one).
 
 ## Installation
-Add laravel-db2 to your composer.json file:
-```
-"require": {
-    "sukhilss/laravel-odbc-hive": "^6.0"
-}
-```
-Use [composer](https://getcomposer.org) to install this package.
-```
-$ composer update
+
+```bash
+composer require sukhilss/laravel-odbc-hive:^7.0
 ```
 
-### Configuration
+Laravel's package auto-discovery picks up `HiveServiceProvider`
+automatically (`composer.json`'s `extra.laravel.providers`) — no manual
+registration needed. As soon as you set `HIVE_DSN` (below), `DB::connection('hive')`
+and `Schema::connection('hive')` resolve to a working connection.
 
+To customize the config instead of relying on environment variables alone,
+publish it:
 
-#### Configure hive using package config file
+```bash
+php artisan vendor:publish --tag=hive-config
+```
 
-Run on the command line from the root of your project:
+This copies the package's `config/hive.php` to your application's
+`config/hive.php`. See [`docs/configuration.md`](docs/configuration.md) for
+every key, the DSN formats accepted, and how to run Hive as a secondary
+connection alongside MySQL/PostgreSQL — the common case.
+
+## Quick start
+
+Set the connection in `.env`:
 
 ```
-$ php artisan vendor:publish
+HIVE_DSN=Driver=Hive;Host=your-host;Port=10000
+HIVE_USERNAME=
+HIVE_PASSWORD=
+HIVE_DATABASE=default
 ```
 
-Set your laravel-odbc-hive credentials in ``app/config/hive.php``
-the same way as above
+Query it like any other Laravel connection:
 
-Supported DDL commands
+```php
+use Illuminate\Support\Facades\DB;
+
+DB::connection('hive')->table('events')->where('event_date', '2026-07-01')->get();
+```
+
+Executing `->get()` needs a live Hive server and ODBC driver, neither of
+which this repository has. The query still compiles correctly without one
+— verified by building a real `HiveQueryGrammar`-backed query builder and
+calling `->toSql()`:
 
 ```
-Schema::connection("hive")->create('dummy_' . time(), function (Blueprint $table) {
-    // Numeric Types
-    $table->integer('integer_field');
-    $table->bigInteger('big_integer');
-    $table->smallInteger('small_integer');
-    $table->tinyInteger('tinyinteger_field');
-    $table->float('float_field');
-    $table->double('double_field');
-    $table->decimal('decimal_field');
+select * from events where event_date = ?
+```
 
-    $table->timestamp('timestamp_field');
-    $table->date('date_field');
+Create a table with the Hive-specific schema builder:
 
-    // String Types
-    $table->string('string_field'); // String literals can be expressed with either single quotes (') or double quotes ("). 
-    $table->char('char_field'); // fixed-length strings, the values should be shorter than the specified length
-    $table->varChar('varchar_fied'); // varchar between 1 and 65535
+```php
+use Illuminate\Support\Facades\Schema;
+use Sukhil\Database\Hive\Schema\HiveBlueprint;
 
-    $table->boolean('boolean_field');
-    $table->binary('binary_field');
+Schema::connection('hive')->create('events', function (HiveBlueprint $table) {
+    $table->string('name');
+    $table->storedAs('ORC')->location('/warehouse/events');
 });
 ```
 
+Compiled directly through `HiveSchemaGrammar` (again, no live connection
+needed — schema compilation is pure string generation):
+
+```sql
+create table events (name string) STORED AS ORC LOCATION '/warehouse/events'
+```
+
+**Before you write the matching `down()`:** schema support here is
+CREATE-only. `Schema::dropIfExists()` (and `drop()`, `rename()`, and adding
+a column via `Schema::table()`) compiles to **zero** SQL statements and
+returns successfully having done nothing — no exception, no warning. A
+rollback written the usual way will silently leave the table in place. See
+[`docs/limitations.md`](docs/limitations.md) for the full list and what to
+do instead.
+
+See [`docs/schema-builder.md`](docs/schema-builder.md) for the full column
+type mapping and every Hive-specific option.
+
+## Documentation
+
+- [`docs/configuration.md`](docs/configuration.md) — connection setup, config
+  keys, DSN formats, running Hive as a secondary connection.
+- [`docs/schema-builder.md`](docs/schema-builder.md) — the Hive-specific
+  schema builder API and column type mapping.
+- [`docs/limitations.md`](docs/limitations.md) — everything this driver does
+  not do, or does differently than you'd expect: dropped column modifiers,
+  CREATE-only schema support, unbound raw statement parameters, and more.
+  Read this before relying on the driver for anything beyond basic
+  `CREATE TABLE` and `SELECT`.
+- [`docs/local-development.md`](docs/local-development.md) — building,
+  testing, and linting this package, and how the Docker toolchain (and the
+  ODBC driver gap) fits together.
+
+## Troubleshooting
+
+**"Hive DSN is not configured"** — thrown by `HiveConnector::connect()`
+when the `dsn` config key (or `HIVE_DSN` env var) is missing or empty:
+
+```
+InvalidArgumentException: Hive DSN is not configured. Set the "dsn" key on
+the connection (or the HIVE_DSN environment variable) to an ODBC DSN.
+```
+
+Set `HIVE_DSN` in `.env`, or the `dsn` key if you've published the config.
+
+**"Unsafe Hive identifier"** — thrown by `HiveIdentifier` when a table or
+column name contains anything other than letters, digits, and underscores
+(Hive identifiers are never quoted by this driver — see
+[`docs/limitations.md`](docs/limitations.md)):
+
+```
+InvalidArgumentException: Unsafe Hive identifier 'my-table': only letters,
+digits and underscores are permitted.
+```
+
+Rename the table/column, or sanitize any user-supplied name before it
+reaches the query builder.
+
+**"could not find driver"** — a plain `PDOException` thrown by PDO itself,
+not by this package, when the `pdo_odbc` extension isn't installed on the
+machine trying to connect:
+
+```
+PDOException: could not find driver
+```
+
+Install `pdo_odbc` (and an ODBC driver for Hive — see "What you need that
+this package does not provide" above). `composer.json` only *suggests*
+`ext-odbc`, since this package cannot install a Hive ODBC driver for you.
+
+## Contributing
+
+Bug reports and pull requests are welcome. See
+[`docs/local-development.md`](docs/local-development.md) for how to build,
+test, and lint this package before submitting a PR — the full local gate is
+`composer test && composer lint && composer analyse`, all run through
+`docker compose run --rm php`. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for
+the full guidelines, and the [Code of Conduct](CODE_OF_CONDUCT.md) that
+applies to all project spaces.
+
+## Security
+
+If you find a security issue, please report it privately (via GitHub's
+security advisory feature on this repository) rather than opening a public
+issue. See [`SECURITY.md`](SECURITY.md) for the full policy, including how
+to report by email.
+
+## License
+
+MIT. See [`LICENSE.md`](LICENSE.md).

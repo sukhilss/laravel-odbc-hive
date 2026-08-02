@@ -1,0 +1,18 @@
+{
+    "require": {
+        "laravel/framework": "^6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Sukhil\\Database\\Hive\\": "/tmp/v6/src/"
+        }
+    },
+    "config": {
+        "vendor-dir": "/tmp/legacy-vendor",
+        "policy": {
+            "advisories": {
+                "block": false
+            }
+        }
+    }
+}

@@ -1,0 +1,26 @@
+services:
+  php:
+    build: ./docker/php
+    volumes:
+      - .:/app
+      - composer-cache:/root/.composer/cache
+    working_dir: /app
+
+  hive:
+    image: apache/hive:4.0.0
+    profiles: [hive]
+    environment:
+      SERVICE_NAME: hiveserver2
+    ports:
+      - "10000:10000"
+      - "10002:10002"
+
+  legacy-capture:
+    build: ./docker/legacy-capture
+    profiles: [capture]
+    volumes:
+      - .:/app
+    working_dir: /app
+
+volumes:
+  composer-cache:

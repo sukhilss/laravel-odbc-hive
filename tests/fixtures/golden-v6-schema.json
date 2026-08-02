@@ -1,0 +1,17 @@
+{
+    "numeric_types": [
+        "create table sample_table (integer_field int, big_integer bigint, small_integer smallint, tinyinteger_field tinyint, float_field float, double_field double, decimal_field decimal(8, 2))"
+    ],
+    "string_types": [
+        "create table sample_table (string_field string, char_field char(255), text_field varchar(65535), medium_text_field varchar(65535), long_text_field varchar(65535))"
+    ],
+    "temporal_and_misc_types": [
+        "create table sample_table (timestamp_field timestamp, date_field date, datetime_field timestamp, boolean_field boolean, binary_field binary)"
+    ],
+    "modifiers_are_dropped": [
+        "create table sample_table (nullable_field string, default_field int, unsigned_field int)"
+    ],
+    "table_options": [
+        "create table optioned_table (name string)ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe' WITH SERDEPROPERTIES ('serialization.encoding'='UTF-8','store.charset'='UTF-8', 'retrieve.charset'='UTF-8') STORED AS ORC ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION  '/warehouse/optioned'"
+    ]
+}
