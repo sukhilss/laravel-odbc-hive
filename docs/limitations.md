@@ -6,8 +6,11 @@ against the literal SQL strings the grammars produce, and a golden-parity
 harness (`tests/Unit/Schema/GoldenParityTest.php`, backed by
 `tests/fixtures/golden-v6-schema.json`) that pins the schema grammar's DDL
 output against what the pre-port Laravel 6 code produced for the same
-migrations. That harness proves the port introduced no regression relative to
-v6. It proves nothing about whether v6's SQL — or this fork's — is valid
+migrations. ("Pre-port" means the pinned commit `ea23f65`, two commits past
+the last release, `v6.0.4` = `0a69cf8`; the two differ in the schema grammar,
+so do not read the harness as pinning against released v6.) That harness
+proves the port introduced no regression relative to
+`ea23f65`. It proves nothing about whether v6's SQL — or this fork's — is valid
 HiveQL on an actual cluster. If you are the first person to run this against
 a real Hive server, you are also the first person to find out whether it
 works. Please report back (see the issue tracker) if you do.

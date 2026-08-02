@@ -63,6 +63,18 @@ Nothing to install, update or remove
 Generating autoload files
 ```
 
+**Your first run will not look like that.** `composer.lock` is listed in
+`.gitignore` and is not tracked in this repository, so a fresh clone has no
+lock file: `composer install` prints `No composer.lock file present.
+Updating dependencies to latest instead of installing from lock file. See
+https://getcomposer.org/install for more information.` and resolves
+dependencies from scratch (slower, and it writes a `composer.lock` that
+stays local to your checkout). The output above is what you see on
+subsequent runs, once that local lock file exists. Because the lock file is
+untracked, contributors and CI can resolve to different patch versions of
+the same constraints — if a test fails for you and not in CI, compare
+resolved versions first.
+
 ```
 $ docker compose run --rm php composer test
 PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
@@ -186,9 +198,17 @@ tune to make a test pass. If `GoldenParityTest` fails, that is telling you
 the ported grammar's output changed relative to v6 — the fix is either to
 correct the regression in `src/`, or, if the behavior change is deliberate
 and reviewed, to register it in `tests/fixtures/intentional-deviations.php`
-with a written reason (a real example already there: v6 emitted malformed
-`ROW FORMAT` clauses in three distinct ways, and v7 deliberately fixes all
-three rather than reproducing them — see that file for the full explanation).
+with a written reason (a real example already there: the pinned commit
+emitted malformed `ROW FORMAT` clauses in three distinct ways, and v7
+deliberately fixes all three rather than reproducing them — see that file
+for the full explanation).
+
+Note the scope of "v6" throughout this harness, including inside
+`intentional-deviations.php`: it means the pinned commit `ea23f65`, which is
+two commits *past* the last release, `v6.0.4` (commit `0a69cf8`). Two of
+those three `ROW FORMAT` bugs live in the `ROW FORMAT SERDE` clause, and
+that clause was added after the tag — released v6 never emitted it. See
+`CHANGELOG.md` for which of the three affected a release.
 Never touch the golden JSON itself to make a failing comparison pass; that
 would defeat the point of the harness. Regenerating it (re-running
 `capture-golden.sh`) should only ever reproduce the same file, since the
