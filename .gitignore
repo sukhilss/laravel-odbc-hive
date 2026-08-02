@@ -7,4 +7,3 @@ composer.lock
 /build
 docker/drivers/*
 !docker/drivers/.gitkeep
-docs/superpowers/
