@@ -19,6 +19,9 @@ with a Hive-specific `Schema` builder.
 
 If you're on Laravel 6, stay on `^6.0` of this package — see the
 [`v6.0.4` tag](https://github.com/sukhilss/laravel-odbc-hive/tree/v6.0.4).
+Note that v6.x is **end of life**: [`SECURITY.md`](SECURITY.md) states that
+security reports against v6.x will not receive a patched release, so treat
+`^6.0` as a place to sit while you upgrade, not a supported version.
 Everything below documents v7.
 
 ## What you need that this package does not provide
@@ -109,6 +112,14 @@ needed — schema compilation is pure string generation):
 ```sql
 create table events (name string) STORED AS ORC LOCATION '/warehouse/events'
 ```
+
+**Before you write the matching `down()`:** schema support here is
+CREATE-only. `Schema::dropIfExists()` (and `drop()`, `rename()`, and adding
+a column via `Schema::table()`) compiles to **zero** SQL statements and
+returns successfully having done nothing — no exception, no warning. A
+rollback written the usual way will silently leave the table in place. See
+[`docs/limitations.md`](docs/limitations.md) for the full list and what to
+do instead.
 
 See [`docs/schema-builder.md`](docs/schema-builder.md) for the full column
 type mapping and every Hive-specific option.
